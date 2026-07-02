@@ -1,0 +1,32 @@
+{
+  "hero": {
+    "title": "See Your Brand Through AI",
+    "subtitle": "Understand how AI models perceive your brand, identify what is missing, and continuously improve your AI visibility.",
+    "chineseTagline": "ZKoner 帮助品牌理解 AI 如何认识自己，并持续优化这种认知",
+    "mission": "让每一个品牌都能建立、监测和优化自己在 AI 世界中的认知"
+  },
+  "form": {
+    "brandPlaceholder": "Brand name or URL (e.g., Anthropic, tesla.com)",
+    "urlPlaceholder": "https://yourbrand.com",
+    "analyzeButton": "Analyze Your Brand",
+    "analyzing": "Analyzing..."
+  },
+  "features": {
+    "scan": {
+      "title": "ZKoner Scan",
+      "desc": "AI detection & visibility analysis"
+    },
+    "insight": {
+      "title": "ZKoner Insight",
+      "desc": "AI cognition & entity analysis"
+    },
+    "action": {
+      "title": "ZKoner Action",
+      "desc": "Improvement & content suggestions"
+    }
+  },
+  "recent": {
+    "title": "Recent Analyses",
+    "empty": "No past analyses yet"
+  }
+}

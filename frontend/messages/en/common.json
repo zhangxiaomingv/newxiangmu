@@ -1,0 +1,18 @@
+{
+  "app": {
+    "title": "ZKONER — AI Brand Visibility Diagnostic",
+    "description": "Check how AI understands your brand. Get your AI Visibility Score and growth roadmap."
+  },
+  "nav": {
+    "newAnalysis": "New Analysis",
+    "language": "Language"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "outOf100": "out of 100",
+    "latest": "latest",
+    "noData": "No data available"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "app": {
+    "title": "ZKONER — AI 品牌可见度诊断",
+    "description": "检测 AI 如何理解你的品牌，获取 AI 可见度评分和增长路线图"
+  },
+  "nav": {
+    "newAnalysis": "新建分析",
+    "language": "语言"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "retry": "重试",
+    "outOf100": "分（满分100）",
+    "latest": "最新",
+    "noData": "暂无数据"
+  }
+}

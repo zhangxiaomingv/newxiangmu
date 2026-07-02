@@ -1,0 +1,56 @@
+{
+  "modules": {
+    "visibility": "AI 可见度",
+    "perception": "AI 认知画像",
+    "gaps": "信号缺口",
+    "actions": "推荐行动",
+    "timeline": "监控时间线",
+    "roadmap": "AI 优化路线图"
+  },
+  "visibility": {
+    "dimensions": {
+      "mention": "提及度",
+      "consistency": "一致性",
+      "structure": "结构化",
+      "authority": "权威性",
+      "clarity": "清晰度"
+    },
+    "sparkline": {
+      "snapshots": "次扫描",
+      "trending": "趋势"
+    }
+  },
+  "perception": {
+    "keyAttributes": "关键属性",
+    "knownFor": "知名领域",
+    "confusionAreas": "混淆区域",
+    "competitiveContext": "竞争格局"
+  },
+  "gaps": {
+    "severity": {
+      "critical": "严重",
+      "moderate": "中等",
+      "minor": "轻微"
+    }
+  },
+  "actions": {
+    "immediate": "立即行动（7天）",
+    "mediumTerm": "中期计划（30天）",
+    "effort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "impact": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    }
+  },
+  "timeline": {
+    "lastScan": "上次扫描",
+    "snapshots": "次快照"
+  },
+  "reanalyze": "重新分析",
+  "scanning": "正在扫描..."
+}

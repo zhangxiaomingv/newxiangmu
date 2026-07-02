@@ -1,0 +1,56 @@
+{
+  "modules": {
+    "visibility": "AI Visibility",
+    "perception": "AI Perception",
+    "gaps": "Missing Signals",
+    "actions": "Recommended Actions",
+    "timeline": "Monitoring Timeline",
+    "roadmap": "AI Optimization Roadmap"
+  },
+  "visibility": {
+    "dimensions": {
+      "mention": "Mention",
+      "consistency": "Consistency",
+      "structure": "Structure",
+      "authority": "Authority",
+      "clarity": "Clarity"
+    },
+    "sparkline": {
+      "snapshots": "snapshots",
+      "trending": "trending"
+    }
+  },
+  "perception": {
+    "keyAttributes": "Key Attributes",
+    "knownFor": "Known For",
+    "confusionAreas": "Confusion Areas",
+    "competitiveContext": "Competitive Context"
+  },
+  "gaps": {
+    "severity": {
+      "critical": "critical",
+      "moderate": "moderate",
+      "minor": "minor"
+    }
+  },
+  "actions": {
+    "immediate": "Immediate (7 days)",
+    "mediumTerm": "Medium Term (30 days)",
+    "effort": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "impact": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  },
+  "timeline": {
+    "lastScan": "Last scan",
+    "snapshots": "snapshots"
+  },
+  "reanalyze": "Re-analyze",
+  "scanning": "Scanning..."
+}

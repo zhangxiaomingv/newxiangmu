@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { useLocale } from "next-intl";
 import { getAnalysis, reanalyze, getHistory } from "@/lib/api";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 // ── Color helpers ───────────────────────────────────
 
@@ -37,7 +39,7 @@ function impactBadge(i) {
 
 function ScoreSparkline({ history, currentScore }) {
   if (!history || history.length < 2) return null;
-  const points = [...history].reverse(); // oldest → newest
+  const points = [...history].reverse();
   const scores = points.map(p => p.score);
   const min = Math.min(...scores, currentScore) - 10;
   const max = Math.max(...scores, currentScore) + 10;
@@ -52,7 +54,6 @@ function ScoreSparkline({ history, currentScore }) {
     return `${i === 0 ? "M" : "L"}${x.toFixed(0)},${y.toFixed(0)}`;
   }).join(" ");
 
-  // Current score dot
   const cx = (points.length + 0.5) * step;
   const cy = H - ((currentScore - min) / range) * H;
 
@@ -135,20 +136,12 @@ function LoadingSkeleton() {
   );
 }
 
-// ── Question Mark (waiting state) ───────────────────
-
-function QuestionState() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4">
-      <span className="text-[#8888aa]">Analysis not found or still processing.</span>
-    </div>
-  );
-}
-
 // ── Main Page Component ──────────────────────────────
 
 export default function AnalysisPage({ params }) {
   const { id } = use(params);
+  const locale = useLocale();
+  const t = (key) => key; // Simple pass-through for UI labels we translate inline
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +158,6 @@ export default function AnalysisPage({ params }) {
         if (result.status === "completed") {
           setData(result);
           setLoading(false);
-          // Load history in background
           getHistory(id).then(h => {
             if (!cancelled) setHistory(h);
           }).catch(() => {});
@@ -190,7 +182,8 @@ export default function AnalysisPage({ params }) {
     setReanalyzing(true);
     try {
       const result = await reanalyze(id);
-      window.location.href = `/analysis/${result.id}`;
+      const prefix = locale === "en" ? "" : `/${locale}`;
+      window.location.href = `${prefix}/analysis/${result.id}`;
     } catch (e) {
       setError(e.message);
       setReanalyzing(false);
@@ -199,11 +192,10 @@ export default function AnalysisPage({ params }) {
 
   if (loading) return <LoadingSkeleton />;
   if (error) return <div className="flex flex-col items-center justify-center min-h-screen px-4 text-[#ff6040]">{error}</div>;
-  if (!data) return <QuestionState />;
+  if (!data) return <div className="flex flex-col items-center justify-center min-h-screen px-4"><span className="text-[#8888aa]">Analysis not found.</span></div>;
 
   const { score, score_breakdown, perception_profile, gap_map, suggestions, roadmap } = data;
 
-  // Latest roadmap items become our "Monitor timeline" stages
   const timelineStages = roadmap.length > 0 ? roadmap : [
     { stage: 1, title: "Foundation", description: "Basic AI recognition", actions: ["Add schema markup", "Optimize meta tags"] },
     { stage: 2, title: "Clarity", description: "Consistent AI understanding", actions: ["Clear value prop", "About page content"] },
@@ -215,50 +207,108 @@ export default function AnalysisPage({ params }) {
   const immediateActions = suggestions.filter(s => s.priority === "immediate");
   const mediumActions = suggestions.filter(s => s.priority === "medium_term");
 
+  const localeStr = locale === "zh" ? "zh-CN" : "en-US";
+
+  // ══ UI labels (translated) ══
+  const labels = locale === "zh" ? {
+    aiVisibility: "AI 可见度",
+    aiPerception: "AI 认知画像",
+    missingSignals: "信号缺口",
+    recommendedActions: "推荐行动",
+    monitoringTimeline: "监控时间线",
+    optimizationRoadmap: "AI 优化路线图",
+    mention: "提及度",
+    consistency: "一致性",
+    structure: "结构化",
+    authority: "权威性",
+    clarity: "清晰度",
+    reanalyze: "重新分析",
+    scanning: "正在扫描...",
+    snapshots: "次扫描",
+    trending: "趋势",
+    newAnalysis: "← 新建分析",
+    keyAttributes: "关键属性",
+    knownFor: "知名领域",
+    confusionAreas: "混淆区域",
+    competitiveContext: "竞争格局",
+    immediate: "立即行动（7天）",
+    mediumTerm: "中期计划（30天）",
+    lastScan: "上次扫描",
+    latest: "最新",
+  } : {
+    aiVisibility: "AI Visibility",
+    aiPerception: "AI Perception",
+    missingSignals: "Missing Signals",
+    recommendedActions: "Recommended Actions",
+    monitoringTimeline: "Monitoring Timeline",
+    optimizationRoadmap: "AI Optimization Roadmap",
+    mention: "Mention",
+    consistency: "Consistency",
+    structure: "Structure",
+    authority: "Authority",
+    clarity: "Clarity",
+    reanalyze: "Re-analyze",
+    scanning: "Scanning...",
+    snapshots: "snapshots",
+    trending: "trending",
+    newAnalysis: "← New Analysis",
+    keyAttributes: "Key Attributes",
+    knownFor: "Known For",
+    confusionAreas: "Confusion Areas",
+    competitiveContext: "Competitive Context",
+    immediate: "⚡ Immediate (7 days)",
+    mediumTerm: "📅 Medium Term (30 days)",
+    lastScan: "Last scan",
+    latest: "latest",
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
-      {/* ── Header ── */}
+      {/* Language Switcher + Header */}
       <div className="flex items-center justify-between animate-slide-up">
         <div>
-          <a href="/" className="text-[#7c5cfc] text-sm hover:underline">&larr; New Analysis</a>
+          <a href={`/`} className="text-[#7c5cfc] text-sm hover:underline">{labels.newAnalysis}</a>
           <h1 className="text-2xl font-bold mt-2 flex items-center gap-2">
             {data.brand}
             {history && history.length > 1 && (
               <span className="text-sm font-normal text-[#8888aa]">
                 <span className={scoreColor(score)}>{score}</span>
-                {" "}· <span className="text-[#555]">{history.length} scans</span>
+                {" "}· <span className="text-[#555]">{history.length} {labels.snapshots}</span>
               </span>
             )}
           </h1>
         </div>
-        <button
-          onClick={handleReanalyze}
-          disabled={reanalyzing}
-          className="px-4 py-2 bg-gradient-to-r from-[#7c5cfc] to-[#5a3fd4] text-white rounded-lg text-sm font-medium transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {reanalyzing ? (
-            <>
-              <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Scanning...
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="23 4 23 10 17 10" />
-                <polyline points="1 20 1 14 7 14" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
-              Re-analyze
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <button
+            onClick={handleReanalyze}
+            disabled={reanalyzing}
+            className="px-4 py-2 bg-gradient-to-r from-[#7c5cfc] to-[#5a3fd4] text-white rounded-lg text-sm font-medium transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {reanalyzing ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {labels.scanning}
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10" />
+                  <polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                {labels.reanalyze}
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* ── Module 1: AI Visibility Score ── */}
+      {/* Module 1: AI Visibility Score */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#7c5cfc]" />
-          AI Visibility
+          {labels.aiVisibility}
         </h2>
         <div className="flex flex-col md:flex-row items-center gap-10">
           <div className="relative flex items-center justify-center">
@@ -267,12 +317,11 @@ export default function AnalysisPage({ params }) {
           <div className="flex-1 w-full space-y-3">
             {score_breakdown && Object.entries(score_breakdown).map(([key, val]) => {
               const weights = { mention: 0.2, consistency: 0.25, structure: 0.2, authority: 0.2, clarity: 0.15 };
-              const labels = { mention: "Mention", consistency: "Consistency", structure: "Structure", authority: "Authority", clarity: "Clarity" };
+              const labelMap = { mention: labels.mention, consistency: labels.consistency, structure: labels.structure, authority: labels.authority, clarity: labels.clarity };
               return (
-                <DimensionBar key={key} label={labels[key] || key} score={val} weight={weights[key] || 0} />
+                <DimensionBar key={key} label={labelMap[key] || key} score={val} weight={weights[key] || 0} />
               );
             })}
-            {/* Sparkline if history available */}
             {history && history.length > 0 && (
               <div className="mt-4 pt-4 border-t border-[#2a2a5a]">
                 <ScoreSparkline history={history} currentScore={score} />
@@ -282,16 +331,16 @@ export default function AnalysisPage({ params }) {
         </div>
       </section>
 
-      {/* ── Module 2: AI Perception Profile ── */}
+      {/* Module 2: AI Perception Profile */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.2s" }}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#00e5a0]" />
-          AI Perception
+          {labels.aiPerception}
         </h2>
         <p className="text-[#c0c0d0] leading-relaxed mb-6">{perception_profile.summary}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-sm font-medium text-[#8888aa] mb-2">Key Attributes</h3>
+            <h3 className="text-sm font-medium text-[#8888aa] mb-2">{labels.keyAttributes}</h3>
             <div className="flex flex-wrap gap-2">
               {perception_profile.key_attributes.map((a, i) => (
                 <span key={i} className="px-3 py-1 text-sm bg-[#7c5cfc]/10 border border-[#7c5cfc]/30 rounded-full text-[#b0a0ff]">
@@ -301,7 +350,7 @@ export default function AnalysisPage({ params }) {
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-[#8888aa] mb-2">Known For</h3>
+            <h3 className="text-sm font-medium text-[#8888aa] mb-2">{labels.knownFor}</h3>
             <ul className="space-y-1">
               {perception_profile.known_for.map((k, i) => (
                 <li key={i} className="text-sm text-[#c0c0d0]">• {k}</li>
@@ -310,7 +359,7 @@ export default function AnalysisPage({ params }) {
           </div>
           {perception_profile.confusion_areas?.length > 0 && (
             <div className="md:col-span-2">
-              <h3 className="text-sm font-medium text-[#ff6040] mb-2">Confusion Areas</h3>
+              <h3 className="text-sm font-medium text-[#ff6040] mb-2">{labels.confusionAreas}</h3>
               <ul className="space-y-1">
                 {perception_profile.confusion_areas.map((c, i) => (
                   <li key={i} className="text-sm text-[#c0c0d0]">⚠ {c}</li>
@@ -320,18 +369,18 @@ export default function AnalysisPage({ params }) {
           )}
           {perception_profile.competitor_context && (
             <div className="md:col-span-2">
-              <h3 className="text-sm font-medium text-[#8888aa] mb-1">Competitive Context</h3>
+              <h3 className="text-sm font-medium text-[#8888aa] mb-1">{labels.competitiveContext}</h3>
               <p className="text-sm text-[#c0c0d0]">{perception_profile.competitor_context}</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── Module 3: Gap Map ── */}
+      {/* Module 3: Gap Map */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.3s" }}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#f0c040]" />
-          Missing Signals
+          {labels.missingSignals}
         </h2>
         <div className="space-y-3">
           {gap_map.map((gap, i) => (
@@ -356,14 +405,12 @@ export default function AnalysisPage({ params }) {
         </div>
       </section>
 
-      {/* ── Module 4: Recommended Actions ── */}
+      {/* Module 4: Recommended Actions */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.4s" }}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#7c5cfc]" />
-          Recommended Actions
+          {labels.recommendedActions}
         </h2>
-
-        {/* Tabs: Immediate / Medium Term */}
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setShowActions("immediate")}
@@ -373,7 +420,7 @@ export default function AnalysisPage({ params }) {
                 : "bg-[#0a0a1a] text-[#8888aa] border border-[#2a2a5a] hover:border-[#555]"
             }`}
           >
-            ⚡ Immediate (7 days)
+            {labels.immediate}
             {immediateActions.length > 0 && (
               <span className="ml-1.5 text-xs opacity-60">({immediateActions.length})</span>
             )}
@@ -386,13 +433,12 @@ export default function AnalysisPage({ params }) {
                 : "bg-[#0a0a1a] text-[#8888aa] border border-[#2a2a5a] hover:border-[#555]"
             }`}
           >
-            📅 Medium Term (30 days)
+            {labels.mediumTerm}
             {mediumActions.length > 0 && (
               <span className="ml-1.5 text-xs opacity-60">({mediumActions.length})</span>
             )}
           </button>
         </div>
-
         <div className="space-y-3">
           {(showActions === "immediate" ? immediateActions : mediumActions).map((s, i) => (
             <div key={i} className="p-4 bg-[#0a0a1a] rounded-xl border border-[#2a2a5a]/50">
@@ -412,27 +458,26 @@ export default function AnalysisPage({ params }) {
         </div>
       </section>
 
-      {/* ── Module 5: Monitoring Timeline ── */}
+      {/* Module 5: Monitoring Timeline */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.5s" }}>
         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#00e5a0]" />
-          {history && history.length > 1 ? "Monitoring Timeline" : "AI Optimization Roadmap"}
+          {history && history.length > 1 ? labels.monitoringTimeline : labels.optimizationRoadmap}
           {history && history.length > 1 && (
             <span className="text-xs font-normal text-[#8888aa] ml-auto">
-              Last scan: {new Date(history[0].created_at).toLocaleDateString()}
+              {labels.lastScan}: {new Date(history[0].created_at).toLocaleDateString(localeStr)}
             </span>
           )}
         </h2>
 
         {history && history.length > 1 ? (
-          /* ── Score History Timeline ── */
           <div className="relative">
             <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#7c5cfc] via-[#00e5a0] to-[#7c5cfc]/30" />
             <div className="space-y-6">
               {history.map((snap, i) => {
                 const date = new Date(snap.created_at);
-                const localDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                const localTime = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                const localDate = date.toLocaleDateString(localeStr, { month: "short", day: "numeric", year: "numeric" });
+                const localTime = date.toLocaleTimeString(localeStr, { hour: "2-digit", minute: "2-digit" });
                 const prevScore = i < history.length - 1 ? history[i + 1].score : score;
                 const delta = snap.score - prevScore;
                 return (
@@ -450,7 +495,7 @@ export default function AnalysisPage({ params }) {
                         <span className="text-sm text-[#8888aa]">{localDate}</span>
                         <span className="text-xs text-[#555]">{localTime}</span>
                         {i === 0 && (
-                          <span className="text-xs text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-0.5 rounded-full">latest</span>
+                          <span className="text-xs text-[#00e5a0] bg-[#00e5a0]/10 px-2 py-0.5 rounded-full">{labels.latest}</span>
                         )}
                         {delta !== 0 && i > 0 && (
                           <span className={`text-xs ${delta > 0 ? "text-[#00e5a0]" : "text-[#ff6040]"}`}>
@@ -458,7 +503,6 @@ export default function AnalysisPage({ params }) {
                           </span>
                         )}
                       </div>
-                      {/* Mini dimension bars */}
                       <div className="mt-2 flex gap-3 flex-wrap">
                         {Object.entries(snap.score_breakdown).map(([k, v]) => (
                           <span key={k} className="text-xs text-[#666688]">
@@ -473,7 +517,6 @@ export default function AnalysisPage({ params }) {
             </div>
           </div>
         ) : (
-          /* ── Fallback: Static Roadmap ── */
           <div className="relative">
             <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#7c5cfc] via-[#00e5a0] to-[#7c5cfc]/30" />
             <div className="space-y-8">
