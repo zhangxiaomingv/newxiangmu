@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { startAnalysis } from "@/lib/api";
+import { startAnalysis, getRecent } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
@@ -10,6 +10,11 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [recent, setRecent] = useState([]);
+
+  useEffect(() => {
+    getRecent().then(setRecent).catch(() => {});
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -113,6 +118,37 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* Recent Analyses */}
+      {recent.length > 0 && (
+        <div className="w-full max-w-3xl mt-8 animate-slide-up" style={{ animationDelay: "0.5s" }}>
+          <h3 className="text-sm font-medium text-[#8888aa] mb-3">Recent Analyses</h3>
+          <div className="space-y-2">
+            {recent.slice(0, 5).map((r) => (
+              <a
+                key={r.id}
+                href={`/analysis/${r.id}`}
+                className="flex items-center justify-between p-3 bg-[#12122a] border border-[#2a2a5a] rounded-lg hover:border-[#7c5cfc]/40 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`w-2 h-2 rounded-full ${
+                    r.status === "completed" ? "bg-[#00e5a0]" :
+                    r.status === "failed" ? "bg-[#ff6040]" : "bg-[#f0c040]"
+                  }`} />
+                  <span className="text-sm text-white group-hover:text-[#b0a0ff] transition-colors">
+                    {r.brand}
+                  </span>
+                </div>
+                <span className="text-xs text-[#555]">
+                  {new Date(r.created_at).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                  })}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

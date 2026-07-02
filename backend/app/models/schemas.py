@@ -68,3 +68,9 @@ class AnalysisResult(BaseModel):
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = "0.1.0"
+
+
+class ScoreSnapshot(BaseModel):
+    score: float
+    score_breakdown: dict[str, float]
+    created_at: datetime

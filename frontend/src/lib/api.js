@@ -19,8 +19,31 @@ export async function getAnalysis(id) {
   return res.json();
 }
 
+export async function reanalyze(id) {
+  const res = await fetch(`${API_BASE}/analyze/${id}/reanalyze`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Re-analysis failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function getHistory(id) {
+  const res = await fetch(`${API_BASE}/analysis/${id}/history`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function getRecent() {
   const res = await fetch(`${API_BASE}/analyses/recent`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getBrands() {
+  const res = await fetch(`${API_BASE}/brands`);
   if (!res.ok) return [];
   return res.json();
 }

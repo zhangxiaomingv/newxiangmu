@@ -1,4 +1,4 @@
-"""SQLite-based storage for analysis results (v0.1)."""
+"""SQLite-based storage for analysis results (v0.1 → v0.2 with monitoring)."""
 
 import json
 import sqlite3
@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.config import DATA_DIR
-from app.models.schemas import AnalysisResult, AnalysisStatus
+from app.models.schemas import AnalysisResult, AnalysisStatus, ScoreSnapshot
 
 DB_PATH = DATA_DIR / "zkoner.db"
 
@@ -15,6 +15,7 @@ DB_PATH = DATA_DIR / "zkoner.db"
 def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 
@@ -34,17 +35,32 @@ def init_db():
         )
     """)
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS score_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            brand TEXT NOT NULL,
+            score REAL NOT NULL,
+            score_breakdown TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_analyses_brand ON analyses(brand)
     """)
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_analyses_status ON analyses(status)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_score_history_brand ON score_history(brand)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_score_history_created ON score_history(created_at)
     """)
     conn.commit()
     conn.close()
 
 
 def save_analysis(analysis: AnalysisResult):
-    """Save completed analysis result."""
+    """Save completed analysis result and record a score snapshot."""
     conn = _get_conn()
     conn.execute(
         """INSERT OR REPLACE INTO analyses
@@ -59,6 +75,11 @@ def save_analysis(analysis: AnalysisResult):
             datetime.now(timezone.utc).isoformat(),
             analysis.model_dump_json(),
         ),
+    )
+    # Record score history
+    conn.execute(
+        "INSERT INTO score_history (brand, score, score_breakdown, created_at) VALUES (?, ?, ?, ?)",
+        (analysis.brand, analysis.score, json.dumps(analysis.score_breakdown), analysis.created_at.isoformat()),
     )
     conn.commit()
     conn.close()
@@ -117,6 +138,37 @@ def get_analysis_status(analysis_id: str) -> Optional[AnalysisStatus]:
     return None
 
 
+def get_latest_result(brand: str) -> Optional[AnalysisResult]:
+    """Get the most recent completed analysis for a brand."""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT result_json FROM analyses WHERE brand = ? AND status = 'completed' ORDER BY created_at DESC LIMIT 1",
+        (brand,),
+    ).fetchone()
+    conn.close()
+    if row and row["result_json"]:
+        return AnalysisResult.model_validate_json(row["result_json"])
+    return None
+
+
+def get_score_history(brand: str, limit: int = 30) -> list[ScoreSnapshot]:
+    """Get score history for a brand, most recent first."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT score, score_breakdown, created_at FROM score_history WHERE brand = ? ORDER BY created_at DESC LIMIT ?",
+        (brand, limit),
+    ).fetchall()
+    conn.close()
+    return [
+        ScoreSnapshot(
+            score=row["score"],
+            score_breakdown=json.loads(row["score_breakdown"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+        for row in rows
+    ]
+
+
 def list_recent(limit: int = 10) -> list[AnalysisStatus]:
     """List recent analyses."""
     conn = _get_conn()
@@ -134,3 +186,13 @@ def list_recent(limit: int = 10) -> list[AnalysisStatus]:
         )
         for r in rows
     ]
+
+
+def list_tracked_brands() -> list[str]:
+    """List distinct brands that have been analyzed."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT brand FROM analyses WHERE status = 'completed' ORDER BY brand"
+    ).fetchall()
+    conn.close()
+    return [r["brand"] for r in rows]
