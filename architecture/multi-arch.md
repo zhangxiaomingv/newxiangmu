@@ -99,185 +99,136 @@ UI 和报告的语言在请求时决定（Accept-Language header 或用户设置
 
 ## 3. 多语言架构
 
-### 3.1 三层本地化
+### 3.1 架构一览
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Layer 1: UI i18n                               │
-│  next-intl + JSON translation files             │
-│  messages/en.json, messages/zh.json             │
-├─────────────────────────────────────────────────┤
-│  Layer 2: API Localization                      │
-│  API 响应中的文本字段按 locale 输出             │
-│  Accept-Language → 自动选择语言                 │
-├─────────────────────────────────────────────────┤
-│  Layer 3: AI Pipeline Localization              │
-│  Prompt 模板根据 brand/region 选择语言          │
-│  爬虫内容语言检测 → 感知分析语言适配            │
-│  报告语言 = 用户 locale（可覆盖）               │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────┐
+│  UI Layer (i18n) — 用户可见部分                    │
+│  ┌─────────────────────────────────────────────┐  │
+│  │  zkoner.com/  → English UI                  │  │
+│  │  zkoner.com/zh/ → 中文 UI                   │  │
+│  │  只翻译框架文案，AI内容保持英文              │  │
+│  └─────────────────────────────────────────────┘  │
+├───────────────────────────────────────────────────┤
+│  API Layer (Always English)                       │
+│  ┌─────────────────────────────────────────────┐  │
+│  │  所有字段、错误、日志 = English              │  │
+│  │  locale 仅前端使用，API 不感知              │  │
+│  └─────────────────────────────────────────────┘  │
+├───────────────────────────────────────────────────┤
+│  AI Pipeline (Always English Prompts)             │
+│  ┌─────────────────────────────────────────────┐  │
+│  │  LLM 阅读中文/日文内容 → 输出英文分析       │  │
+│  │  不需要多语言 Prompt 模板                   │  │
+│  └─────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────┘
 ```
 
-### 3.2 UI i18n (Layer 1)
+### 3.2 路由策略
 
-使用 `next-intl`，翻译文件按模块组织：
+```
+zkoner.com/        → English (默认)
+zkoner.com/zh/     → 中文
+
+未来扩展:
+zkoner.com/ja/     → 日本語
+```
+
+- English 无前缀（SEO 友好）
+- 中文 `/zh/` 前缀
+- `next-intl` 的 path-based routing 天然支持
+
+### 3.3 UI i18n
+
+使用 `next-intl`，只翻译用户可见的 UI 控件文案：
 
 ```
 frontend/messages/
 ├── en/
-│   ├── common.json        # 全局文案
-│   ├── home.json           # 首页
-│   ├── dashboard.json      # 仪表盘
-│   ├── report.json         # 报告
-│   └── errors.json         # 错误信息
-├── zh/
-│   ├── common.json
-│   ├── home.json
-│   ├── dashboard.json
-│   ├── report.json
-│   └── errors.json
-└── ja/                     # 未来扩展
+│   ├── common.json        # 全局: 按钮、错误、状态
+│   ├── home.json           # 首页: 标题、副标题、提示
+│   ├── dashboard.json      # 仪表盘: 模块标题、标签
+│   └── report.json         # 报告: 分类名、说明
+└── zh/
+    ├── common.json
+    ├── home.json
+    ├── dashboard.json
+    └── report.json
 ```
 
-**路由策略**：基于 cookie 或域名（而非 URL 前缀）
+**关键原则**：翻译文件只包含 UI 框架文案。AI 生成的动态内容（perception summary、gap descriptions、action titles）**保持英文**，不翻译。
 
 ```
-zkoner.com          → 根据浏览器语言自动切换
-zkoner.com/zh       → 强制中文（可选方案）
-cn.zkoner.com       → 默认中文 + 中国区引擎（未来）
+UI 框架文案 → 翻译文件 (next-intl)
+AI 生成内容 → 保留英文（如摘要、描述、建议）
+动态数据 → 保留英文（品牌名、URL、评分标签）
 ```
 
-### 3.3 API 本地化 (Layer 2)
+### 3.4 API 层（Always English）
 
-API 通过 `Accept-Language` header 控制返回语言：
+API 所有字段保持英文，不引入 `LocalizedString` 类型：
 
 ```python
-# backend/app/locale/service.py
-from typing import Optional
-
-LOCALE_MAP = {
-    "en": "en-US",
-    "zh": "zh-CN",
-    "ja": "ja-JP",
-}
-
-def resolve_locale(accept_language: str = "", preferred: str = "") -> str:
-    """Resolve the best locale from Accept-Language header or user preference."""
-    if preferred and preferred in LOCALE_MAP:
-        return LOCALE_MAP[preferred]
-    # Parse Accept-Language header
-    # Fallback to "en-US"
-    return "en-US"
-
-
-def localize_text(text_map: dict[str, str], locale: str) -> str:
-    """Return the localized version of a text field."""
-    return text_map.get(locale, text_map.get("en-US", ""))
-```
-
-**API Schema 设计** — 支持多语言文本字段:
-
-```python
-class LocalizedString(BaseModel):
-    """A string that has translations."""
-    en: str
-    zh: Optional[str] = None
-    # Future: ja, ko, etc.
-
-    def get(self, locale: str) -> str:
-        return getattr(self, locale, None) or self.en
-```
-
-**分析结果中的使用**:
-
-```python
+# ❌ 错误: 之前的设计
 class ActionItem(BaseModel):
-    title: LocalizedString    # {en: "Add Schema", zh: "添加结构化数据"}
-    description: LocalizedString
-    effort: str
-    impact: str
+    title: LocalizedString    # {en: "...", zh: "..."}  太复杂
+
+# ✅ 正确: 所有字段英文
+class ActionItem(BaseModel):
+    title: str                # "Add Organization Schema to homepage"
+    description: str          # "Add schema.org/Organization JSON-LD markup..."
 ```
 
-API 响应时根据 `locale` 展平（flatten）：
+`locale` 参数只用于：
+1. 前端选择 UI 语言
+2. 未来可选的运行时翻译（调用 LLM 翻译文本）
+
+### 3.5 AI Pipeline（Always English）
+
+Prompt 模板**只有英文**，不维护中英双语：
 
 ```python
-def flatten_for_locale(result: AnalysisResult, locale: str) -> dict:
-    """Flatten all LocalizedString fields to plain strings for the given locale."""
-    # Recursively resolve LocalizedString fields
-    ...
+# backend/app/[locale]/  # 语言路由ai_engine/prompts/perception.py
+PERCEPTION_PROMPT = """You are an AI brand perception analyst.
+Analyze how AI systems would perceive this brand...
+
+Brand: {brand}
+Website Content (may be in Chinese):
+{website_content}
+
+Return your analysis in English only."""
 ```
 
-### 3.4 AI Pipeline 本地化 (Layer 3)
-
-这是最有挑战性的本地化层。AI Prompt 的语言会影响分析质量。
-
-**原则**：
-- 目标品牌的语言决定爬虫和感知分析的默认语言
-- 用户 locale 决定报告和建议的语言
-- 引擎的语言决定搜索 query 的语言
+LLM 的能力决定了它可以：
+- 读中文网站内容 → 理解品牌 → **输出英文分析**
+- 读中文搜索结果 → 理解上下文 → **输出英文缺口检测**
+- 不需要我们做中英 Prompt 两套
 
 ```python
-# backend/app/locale/pipeline.py
-
-class PipelineLocale:
-    """三语分离的 locale 上下文"""
-    crawl_lang: str        # 目标品牌语言 (en / zh)
-    analysis_lang: str     # AI 感知分析语言 (en / zh)
-    report_lang: str       # 输出报告语言 (en / zh)
-
-    @classmethod
-    def resolve(cls, brand: str, user_locale: str, region: str) -> "PipelineLocale":
-        """智能决定三语设置"""
-        # brand 含中文字符 → crawl_lang = zh
-        # user_locale = zh-CN → report_lang = zh
-        # analysis_lang 优先用 crawl_lang（理解最准确）
-        ...
-```
-
-**Prompt 模板语言化**：
-
-```python
-# backend/app/ai_engine/prompts/perception_en.py
-PERCEPTION_PROMPT_EN = """You are an AI brand perception analyst. ..."""
-
-# backend/app/ai_engine/prompts/perception_zh.py
-PERCEPTION_PROMPT_ZH = """你是一个 AI 品牌认知分析师。..."""
-
-# backend/app/ai_engine/prompts/__init__.py
+# ❌ 错误: 之前的设计（双语 Prompt）
 PROMPT_REGISTRY = {
-    "perception": {"en": PERCEPTION_PROMPT_EN, "zh": PERCEPTION_PROMPT_ZH},
-    "gap":        {"en": GAP_PROMPT_EN,        "zh": GAP_PROMPT_ZH},
-    "optimize":   {"en": OPTIMIZE_PROMPT_EN,   "zh": OPTIMIZE_PROMPT_ZH},
+    "perception": {"en": PERCEPTION_EN, "zh": PERCEPTION_ZH},
 }
 
-def get_prompt(name: str, lang: str, **kwargs) -> str:
-    template = PROMPT_REGISTRY[name].get(lang, PROMPT_REGISTRY[name]["en"])
-    return template.format(**kwargs)
+# ✅ 正确: 纯英文 Prompt
+PERCEPTION_PROMPT = """...Return in English only."""
 ```
 
-### 3.5 语言检测
 
-```python
-# backend/app/locale/detect.py
-import re
+### 3.3 语言总结
 
-# CJK 字符范围
-CJK_PATTERN = re.compile(r"[一-鿿㐀-䶿豈-﫿]")
+| 层面 | 语言 | 说明 |
+|------|------|------|
+| UI 框架文案 | 中/EN (可切换) | next-intl 翻译文件控制 |
+| AI 生成内容 | English | 始终英文，不翻译 |
+| API 字段 | English | 始终英文 |
+| AI Prompts | English | 始终英文 |
+| 数据库 | English | 字段名、存储值 |
 
-def detect_brand_language(brand: str) -> str:
-    """Detect whether a brand name is primarily Chinese or English."""
-    cjk_count = len(CJK_PATTERN.findall(brand))
-    if cjk_count > 0:
-        return "zh"
-    return "en"
-
-def detect_content_language(text: str) -> str:
-    """Detect primary language of crawled content."""
-    total = len(text.strip())
-    if total == 0:
-        return "en"
-    cjk = len(CJK_PATTERN.findall(text))
-    return "zh" if (cjk / total) > 0.1 else "en"
+```
+zkoner.com/        → UI: English
+zkoner.com/zh/     → UI: 中文
+                      AI内容: 保留英文
 ```
 
 ---
@@ -289,7 +240,7 @@ def detect_content_language(text: str) -> str:
 每个 AI 搜索引擎实现统一接口：
 
 ```python
-# backend/app/engines/base.py
+# backend/app/[locale]/  # 语言路由engines/base.py
 from abc import ABC, abstractmethod
 from enum import Enum
 from dataclasses import dataclass
@@ -369,7 +320,7 @@ class BaseEngineAdapter(ABC):
 ### 4.2 引擎实现示例
 
 ```python
-# backend/app/engines/chatgpt.py
+# backend/app/[locale]/  # 语言路由engines/chatgpt.py
 from app.engines.base import BaseEngineAdapter, EngineInfo, EngineSearchResult, ...
 
 
@@ -405,7 +356,7 @@ class ChatGPTAdapter(BaseEngineAdapter):
 ```
 
 ```python
-# backend/app/engines/deepseek.py
+# backend/app/[locale]/  # 语言路由engines/deepseek.py
 
 class DeepSeekAdapter(BaseEngineAdapter):
     """DeepSeek (chat.deepseek.com) — 国内主流 AI 搜索引擎"""
@@ -429,7 +380,7 @@ class DeepSeekAdapter(BaseEngineAdapter):
 ```
 
 ```python
-# backend/app/engines/kimi.py
+# backend/app/[locale]/  # 语言路由engines/kimi.py
 
 class KimiAdapter(BaseEngineAdapter):
     """Kimi (kimi.moonshot.cn) — 月之暗面"""
@@ -449,7 +400,7 @@ class KimiAdapter(BaseEngineAdapter):
 ```
 
 ```python
-# backend/app/engines/mita.py
+# backend/app/[locale]/  # 语言路由engines/mita.py
 
 class MitaAdapter(BaseEngineAdapter):
     """秘塔 AI (metaso.cn) — 中国 AI 搜索引擎"""
@@ -473,7 +424,7 @@ class MitaAdapter(BaseEngineAdapter):
 ```
 
 ```python
-# backend/app/engines/perplexity.py
+# backend/app/[locale]/  # 语言路由engines/perplexity.py
 
 class PerplexityAdapter(BaseEngineAdapter):
     """Perplexity AI — 海外 AI 搜索引擎"""
@@ -499,7 +450,7 @@ class PerplexityAdapter(BaseEngineAdapter):
 ### 4.3 Engine Registry
 
 ```python
-# backend/app/engines/registry.py
+# backend/app/[locale]/  # 语言路由engines/registry.py
 from typing import Optional
 from app.engines.base import BaseEngineAdapter, EngineRegion
 
@@ -557,7 +508,7 @@ class EngineRegistry:
 ### 4.4 Engine Router（多引擎调度器）
 
 ```python
-# backend/app/engines/router.py
+# backend/app/[locale]/  # 语言路由engines/router.py
 from app.engines.registry import EngineRegistry
 from app.engines.base import EngineQueryResult
 
@@ -616,7 +567,7 @@ class EngineRouter:
 每个 region 是一组命名的配置：
 
 ```python
-# backend/app/region/config.py
+# backend/app/[locale]/  # 语言路由region/config.py
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -737,7 +688,7 @@ def get_region(region_id: str) -> RegionConfig:
 ### 5.3 Region 检测与自动选择
 
 ```python
-# backend/app/region/detect.py
+# backend/app/[locale]/  # 语言路由region/detect.py
 import ipaddress
 from typing import Optional
 
@@ -780,7 +731,7 @@ def detect_region_from_headers(headers: dict) -> str:
 ### 5.4 合规管理
 
 ```python
-# backend/app/compliance/manager.py
+# backend/app/[locale]/  # 语言路由compliance/manager.py
 from app.region.config import ComplianceConfig
 
 
@@ -917,20 +868,17 @@ POST /api/analyze
 └─────────────────────────┬───────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  4. AI 感知分析（PipelineLocale）                        │
-│     - PipelineLocale = {                                │
-│         crawl_lang: "zh",       ← 品牌是中文            │
-│         analysis_lang: "zh",    ← 感知分析用中文更准     │
-│         report_lang: "zh-CN"    ← 用户要中文报告        │
-│       }                                                 │
-│     - 使用中文 Prompt 模板                               │
-│     - LLM 输出中文 AIPerceptionProfile                   │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  4. AI 感知分析（English Prompts）                       │
+│     - LLM 读任何语言网站内容 → 英文分析                  │
+│     - 输出英文 AIPerceptionProfile                       │
 └─────────────────────────┬───────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  5. 缺口检测（中文 Prompt）                              │
-│     - 检测中文网站常见的结构/内容/权威性缺口             │
-│     - GapItem 的 description 用中文                      │
+│  5. 缺口检测（English Prompts）                          │
+│     - 英文 Prompt 检测结构/内容/权威性缺口               │
+│     - GapItem 描述为英文                                 │
 └─────────────────────────┬───────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────┐
@@ -940,9 +888,15 @@ POST /api/analyze
 └─────────────────────────┬───────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  7. 优化建议生成（中文 Prompt）                          │
-│     - 生成中文 ActionItem + Roadmap                     │
+│  7. 优化建议生成（English Prompts）                      │
+│     - 生成英文 ActionItem + Roadmap                     │
 └─────────────────────────┬───────────────────────────────┘
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  8. 返回                                                 │
+│     - 所有字段英文                                       │
+│     - Compliance 检查通过                                │
+└─────────────────────────────────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │  8. 返回（根据 locale 展平）                             │
@@ -977,7 +931,7 @@ POST /api/analyze
 多引擎扫描后，需要合并结果以形成统一的 AI 认知画像：
 
 ```python
-# backend/app/engines/merger.py
+# backend/app/[locale]/  # 语言路由engines/merger.py
 from app.engines.base import EngineQueryResult
 
 
@@ -1010,20 +964,14 @@ def merge_engine_results(results: dict[str, EngineQueryResult]) -> dict:
 ```
 zkoner/
 ├── backend/
-│   ├── app/
+│   ├── app/[locale]/  # 语言路由
 │   │   ├── main.py
 │   │   ├── config.py                    # 全局配置
 │   │   │
 │   │   ├── models/
 │   │   │   ├── schemas.py              # Pydantic schemas
-│   │   │   ├── localized_string.py     # LocalizedString 类型
 │   │   │   └── enums.py                # Region, Locale, Engine 枚举
 │   │   │
-│   │   ├── locale/                     # ★ 多语言层
-│   │   │   ├── service.py              # Locale 解析/路由
-│   │   │   ├── detect.py               # 语言检测
-│   │   │   ├── pipeline.py             # PipelineLocale 三语分离
-│   │   │   └── flatten.py              # 结果展平
 │   │   │
 │   │   ├── engines/                    # ★ 多模型层
 │   │   │   ├── __init__.py
@@ -1054,14 +1002,8 @@ zkoner/
 │   │   │
 │   │   ├── ai_engine/                  # AI 分析引擎（不变）
 │   │   │   ├── __init__.py
-│   │   │   ├── prompts/               # ★ 多语言 Prompt
+│   │   │   ├── prompts/               # English Prompts
 │   │   │   │   ├── __init__.py         # PromptRegistry
-│   │   │   │   ├── perception_en.py
-│   │   │   │   ├── perception_zh.py
-│   │   │   │   ├── gap_en.py
-│   │   │   │   ├── gap_zh.py
-│   │   │   │   ├── optimize_en.py
-│   │   │   │   └── optimize_zh.py
 │   │   │   └── service.py             # 核心分析逻辑
 │   │   │
 │   │   ├── crawler/                    # 爬虫层
@@ -1097,11 +1039,8 @@ zkoner/
 │   │       └── report.json
 │   │
 │   ├── src/
-│   │   ├── i18n/                       # ★ i18n 配置
-│   │   │   ├── request.js
-│   │   │   └── routing.js
 │   │   │
-│   │   ├── app/
+│   │   ├── app/[locale]/  # 语言路由
 │   │   │   ├── [locale]/              # ★ 语言路由
 │   │   │   │   ├── page.js
 │   │   │   │   ├── layout.js
@@ -1132,13 +1071,13 @@ zkoner/
 ### 9.1 新增一个引擎
 
 ```python
-# 1. 在 backend/app/engines/ 下新建文件
+# 1. 在 backend/app/[locale]/  # 语言路由engines/ 下新建文件
 # 2. 继承 BaseEngineAdapter
 # 3. 实现 info / search / health
 # 4. 用 @EngineRegistry.register 装饰
 # 5. 完成！
 
-@app/engines/doubao.py
+@app/[locale]/  # 语言路由engines/doubao.py
 @EngineRegistry.register
 class DoubaoAdapter(BaseEngineAdapter):
     ...
@@ -1150,15 +1089,14 @@ class DoubaoAdapter(BaseEngineAdapter):
 
 ```
 1. frontend/messages/{lang}/ 下新建翻译文件
-2. backend/app/ai_engine/prompts/ 下新建 Prompt 模板
-3. backend/app/locale/service.py 的 LOCALE_MAP 添加条目
+2. backend/app/[locale]/  # 语言路由ai_engine/prompts/ 下新建 Prompt 模板
 4. region config 的 supported_locales 添加语言
 ```
 
 ### 9.3 新增一个区域
 
 ```python
-# 在 backend/app/region/config.py 的 REGIONS 字典添加
+# 在 backend/app/[locale]/  # 语言路由region/config.py 的 REGIONS 字典添加
 REGIONS["jp"] = RegionConfig(
     id="jp",
     label="日本",
@@ -1194,12 +1132,12 @@ REGIONS["jp"] = RegionConfig(
 ## 10. 路线图
 
 ### Phase 1: 架构落地 (当前 → 2周)
-- [ ] 实现 `LocalizedString` schema + `flatten_for_locale()`
-- [ ] 实现 `BaseEngineAdapter` + `EngineRegistry`
-- [ ] 实现 `RegionConfig` + region 检测
-- [ ] 实现中文 Prompt 模板（perception_zh, gap_zh, optimize_zh）
-- [ ] 前端接入 `next-intl`，实现中英文切换
-- [ ] API 层面加入 `Accept-Language` 支持
+- [ ] 前端接入 next-intl，实现中英文路由切换
+- [ ] 实现 BaseEngineAdapter + EngineRegistry
+- [ ] 实现 RegionConfig + region 检测
+- [ ] 纯英文 Prompt 确认 + 增加 Return in English only 指令
+- [ ] 不需要（见上一项）
+- [ ] 不需要（API 始终英文）
 
 ### Phase 2: 引擎实现 (2周 → 4周)
 - [ ] 秘塔 adapter（HTTP 无头，无需登录）
