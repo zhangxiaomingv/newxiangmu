@@ -181,7 +181,7 @@ export default function AnalysisPage({ params }) {
   async function handleReanalyze() {
     setReanalyzing(true);
     try {
-      const result = await reanalyze(id);
+      const result = await reanalyze(id, locale);
       const prefix = locale === "en" ? "" : `/${locale}`;
       window.location.href = `${prefix}/analysis/${result.id}`;
     } catch (e) {

@@ -19,11 +19,18 @@ from app.storage import (
 
 router = APIRouter()
 
+LOCALE_TO_LANG = {"en": "English", "zh": "Chinese"}
+
 
 # ── Shared analysis pipeline ─────────────────────────────
 
-async def _run_analysis_pipeline(analysis_id: str, brand: str, url: str | None = None) -> AnalysisResult:
+async def _run_analysis_pipeline(
+    analysis_id: str, brand: str, url: str | None = None,
+    locale: str = "en",
+) -> AnalysisResult:
     """Execute the full analysis pipeline (crawl → perceive → gap → score → optimize)."""
+    output_language = LOCALE_TO_LANG.get(locale, "English")
+
     update_status(analysis_id, "running", "Crawling website...")
     crawled = await crawl_brand(brand, url)
 
@@ -34,6 +41,7 @@ async def _run_analysis_pipeline(analysis_id: str, brand: str, url: str | None =
         website_content=crawled["raw_text"],
         about_content=crawled.get("about_text", ""),
         structured_data=crawled.get("structured_data", {}),
+        output_language=output_language,
     )
 
     update_status(analysis_id, "running", "Detecting gaps...")
@@ -42,16 +50,21 @@ async def _run_analysis_pipeline(analysis_id: str, brand: str, url: str | None =
         url=crawled["url"],
         perception=perception,
         website_content=crawled["raw_text"],
+        output_language=output_language,
     )
 
     update_status(analysis_id, "running", "Generating recommendations...")
     score, score_breakdown = await compute_score(perception, gaps, crawled.get("structured_data"))
 
-    suggestions, roadmap = await generate_optimizations(brand, perception, gaps)
+    suggestions, roadmap = await generate_optimizations(
+        brand, perception, gaps,
+        output_language=output_language,
+    )
 
     return AnalysisResult(
         id=analysis_id,
         brand=brand,
+        locale=locale,
         score=score,
         score_breakdown=score_breakdown,
         perception_profile=perception,
@@ -78,7 +91,7 @@ async def start_analysis(req: AnalyzeRequest):
     save_pending(analysis_id, req.brand)
 
     try:
-        result = await _run_analysis_pipeline(analysis_id, req.brand, req.url)
+        result = await _run_analysis_pipeline(analysis_id, req.brand, req.url, locale=req.locale)
         save_analysis(result)
     except HTTPException:
         raise
@@ -88,6 +101,7 @@ async def start_analysis(req: AnalyzeRequest):
 
     return AnalysisStatus(
         id=analysis_id, brand=req.brand, status="completed",
+        locale=req.locale,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -95,9 +109,9 @@ async def start_analysis(req: AnalyzeRequest):
 # ── Re-analyze (Monitor loop) ───────────────────────────
 
 @router.post("/analyze/{analysis_id}/reanalyze", response_model=AnalysisStatus)
-async def reanalyze_brand(analysis_id: str):
+async def reanalyze_brand(analysis_id: str, locale: str = "en"):
     """Re-analyze a previously analyzed brand (creates a new analysis)."""
-    # First, get the original to find the brand
+    # Get original analysis to find brand
     original = get_analysis(analysis_id)
     if not original:
         original_status = get_analysis_status(analysis_id)
@@ -111,7 +125,7 @@ async def reanalyze_brand(analysis_id: str):
     save_pending(new_id, brand)
 
     try:
-        result = await _run_analysis_pipeline(new_id, brand)
+        result = await _run_analysis_pipeline(new_id, brand, locale=locale)
         save_analysis(result)
     except HTTPException:
         raise
@@ -121,6 +135,7 @@ async def reanalyze_brand(analysis_id: str):
 
     return AnalysisStatus(
         id=new_id, brand=brand, status="completed",
+        locale=locale,
         created_at=datetime.now(timezone.utc),
     )
 

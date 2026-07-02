@@ -26,7 +26,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const result = await startAnalysis(brand.trim(), url.trim() || null);
+      const result = await startAnalysis(brand.trim(), url.trim() || null, locale);
       const prefix = locale === "en" ? "" : `/${locale}`;
       router.push(`${prefix}/analysis/${result.id}`);
     } catch (err) {

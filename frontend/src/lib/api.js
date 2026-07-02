@@ -1,10 +1,10 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-export async function startAnalysis(brand, url = null) {
+export async function startAnalysis(brand, url = null, locale = "en") {
   const res = await fetch(`${API_BASE}/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ brand, url }),
+    body: JSON.stringify({ brand, url, locale }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -19,8 +19,8 @@ export async function getAnalysis(id) {
   return res.json();
 }
 
-export async function reanalyze(id) {
-  const res = await fetch(`${API_BASE}/analyze/${id}/reanalyze`, {
+export async function reanalyze(id, locale = "en") {
+  const res = await fetch(`${API_BASE}/analyze/${id}/reanalyze?locale=${locale}`, {
     method: "POST",
   });
   if (!res.ok) {

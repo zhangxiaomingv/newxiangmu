@@ -10,6 +10,7 @@ from datetime import datetime
 class AnalyzeRequest(BaseModel):
     brand: str = Field(..., description="Brand name or URL")
     url: Optional[str] = Field(None, description="Optional direct URL")
+    locale: str = Field("en", description="Output language: en | zh")
 
 
 # ── Responses ─────────────────────────────────────────────
@@ -18,6 +19,7 @@ class AnalysisStatus(BaseModel):
     id: str
     status: str  # pending | running | completed | failed
     brand: str
+    locale: str = "en"
     created_at: datetime
     progress: Optional[str] = None
 
@@ -56,6 +58,7 @@ class AnalysisResult(BaseModel):
     id: str
     brand: str
     status: str = "completed"
+    locale: str = "en"
     score: float = Field(..., ge=0, le=100, description="AI Visibility Score")
     score_breakdown: dict[str, float]
     perception_profile: AIPerceptionProfile

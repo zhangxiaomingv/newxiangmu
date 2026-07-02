@@ -33,9 +33,9 @@ Return your analysis as a JSON object with these fields:
 - confusion_areas (list[str]): 2-4 areas of ambiguity or confusion
 - competitor_context (str): Where the brand sits in competitive landscape
 
-Be honest and critical — don't sugarcoat. If the brand's positioning is unclear, say so."""
+Be honest and critical — don't sugarcoat. If the brand's positioning is unclear, say so.
 
-
+IMPORTANT: Write your response in {output_language}."""
 GAP_PROMPT = """You are an AI visibility auditor. Based on the brand analysis below, identify what information is missing or insufficient for AI systems to properly understand this brand.
 
 Brand: {brand}
@@ -59,9 +59,9 @@ Return as a JSON array of gap items, each with:
 - description (str): What is missing or insufficient
 - evidence (str): Evidence from the content that supports this gap
 
-Be specific and actionable — not generic SEO advice."""
+Be specific and actionable — not generic SEO advice.
 
-
+IMPORTANT: Write your response in {output_language}."""
 OPTIMIZATION_PROMPT = """You are an AI visibility strategist. Based on the brand analysis and identified gaps, generate concrete steps to improve AI visibility.
 
 Brand: {brand}
@@ -100,7 +100,9 @@ Stage progression:
 - Stage 4: Rich Presence — Structured data + multi-source consistency
 - Stage 5: AI-native — Optimized for AI ecosystem
 
-Be specific and actionable — not generic advice."""
+Be specific and actionable — not generic advice.
+
+IMPORTANT: Write your response in {output_language}."""
 
 
 # ── AI Engine ─────────────────────────────────────────────
@@ -168,7 +170,8 @@ def _mock_response(prompt: str) -> str:
 
 
 async def analyze_perception(
-    brand: str, url: str, website_content: str, about_content: str, structured_data: str
+    brand: str, url: str, website_content: str, about_content: str, structured_data: str,
+    output_language: str = "English",
 ) -> AIPerceptionProfile:
     """Prompt 1: Simulate AI brand perception."""
     prompt = PERCEPTION_PROMPT.format(
@@ -177,6 +180,7 @@ async def analyze_perception(
         website_content=website_content[:8000],
         about_content=about_content[:4000],
         structured_data=str(structured_data)[:2000],
+        output_language=output_language,
     )
     raw = await _call_llm(prompt)
     data = _parse_json(raw)
@@ -190,7 +194,8 @@ async def analyze_perception(
 
 
 async def detect_gaps(
-    brand: str, url: str, perception: AIPerceptionProfile, website_content: str
+    brand: str, url: str, perception: AIPerceptionProfile, website_content: str,
+    output_language: str = "English",
 ) -> list[GapItem]:
     """Prompt 2: Identify information gaps."""
     prompt = GAP_PROMPT.format(
@@ -198,6 +203,7 @@ async def detect_gaps(
         url=url,
         perception_analysis=perception.model_dump_json(indent=2),
         website_content=website_content[:8000],
+        output_language=output_language,
     )
     raw = await _call_llm(prompt)
     data = _parse_json(raw)
@@ -211,13 +217,15 @@ async def detect_gaps(
 
 
 async def generate_optimizations(
-    brand: str, perception: AIPerceptionProfile, gaps: list[GapItem]
+    brand: str, perception: AIPerceptionProfile, gaps: list[GapItem],
+    output_language: str = "English",
 ) -> tuple[list[ActionItem], list[RoadmapStage]]:
     """Prompt 3: Generate optimization suggestions and roadmap."""
     prompt = OPTIMIZATION_PROMPT.format(
         brand=brand,
         perception_analysis=perception.model_dump_json(indent=2),
         gap_analysis=json.dumps([g.model_dump() for g in gaps], indent=2),
+        output_language=output_language,
     )
     raw = await _call_llm(prompt)
     data = _parse_json(raw)
