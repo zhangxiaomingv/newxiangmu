@@ -10,15 +10,19 @@ export default function LanguageSwitcher() {
   function switchLocale(nextLocale) {
     if (nextLocale === locale) return;
 
-    // Build the new URL path
-    // usePathname() in next-intl already strips the locale prefix
+    // pathname from next/navigation includes locale prefix
     let newPath = pathname;
 
+    // Strip current locale prefix from path
+    if (locale !== "en") {
+      newPath = newPath.replace(`/${locale}`, "") || "/";
+    }
+
+    // Add new locale prefix
     if (nextLocale !== "en") {
       newPath = `/${nextLocale}${newPath === "/" ? "" : newPath}`;
     }
 
-    // Hard navigation ensures a full page reload with the new locale
     window.location.href = newPath;
   }
 

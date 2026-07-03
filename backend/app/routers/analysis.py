@@ -65,6 +65,7 @@ async def _run_analysis_pipeline(
         id=analysis_id,
         brand=brand,
         locale=locale,
+        engine=engine_result.engine_name,
         score=score,
         score_breakdown=score_breakdown,
         perception_profile=engine_result.perception,

@@ -268,6 +268,15 @@ export default function AnalysisPage({ params }) {
       <div className="flex items-center justify-between animate-slide-up">
         <div>
           <a href={`/`} className="text-[#7c5cfc] text-sm hover:underline">{labels.newAnalysis}</a>
+          {/* Engine badge */}
+          {data.engine && (
+            <div className="mt-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-[#1a1a3a] text-[#666688] rounded-full border border-[#2a2a5a]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7c5cfc]" />
+                {data.engine}
+              </span>
+            </div>
+          )}
           <h1 className="text-2xl font-bold mt-2 flex items-center gap-2">
             {data.brand}
             {history && history.length > 1 && (

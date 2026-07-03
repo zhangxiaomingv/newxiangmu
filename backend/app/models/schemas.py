@@ -59,6 +59,7 @@ class AnalysisResult(BaseModel):
     brand: str
     status: str = "completed"
     locale: str = "en"
+    engine: str = ""  # which AI engine produced this analysis
     score: float = Field(..., ge=0, le=100, description="AI Visibility Score")
     score_breakdown: dict[str, float]
     perception_profile: AIPerceptionProfile
