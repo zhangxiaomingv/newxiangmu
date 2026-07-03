@@ -1,24 +1,31 @@
-# ZKONER
+# ZKONER — AI Brand Intelligence Platform
 
-> **ZKoner is a cognitive identity system that defines how AI understands entities within a domain. It turns brands into structured, AI-readable signals across the web.**
+> **Measure how AI understands your brand — and continuously improve it.**
 >
-> **ZKoner 是一个认知身份系统，将品牌转化为 AI 可理解的结构化信号。**
+> **ZKoner 帮助品牌理解 AI 如何认识自己，并持续优化这种认知。**
 
-**ZKoner 帮助品牌理解 AI 如何认识自己，并持续优化这种认知。**
+未来每家公司管理三件事：**官网 / 社交媒体 / AI 认知。ZKoner 就是第三项。**
 
-**使命: 让每一个品牌都能建立、监测和优化自己在 AI 世界中的认知。**
+---
 
-**愿景: 未来每家公司管理三件事 — 官网 / 社交媒体 / AI认知。ZKoner 就是第三项。**
-
-AI Brand Intelligence Platform.
-
-## Core Loop
+## Product Loop
 
 ```
-Scan ──→ Insight ──→ Action ──→ Verify ──→ Monitor ──→ Loop
+Scan → Insight → Action → Verify → Monitor → Loop
 ```
 
-Observe → Understand → Improve → Monitor (检测 → 理解 → 修正 → 持续监控)
+## Quick Start
+
+```bash
+# Clone & run — no API key needed
+cd zkoner
+bash scripts/start.sh
+
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:8000
+```
+
+Enter any brand name or URL → instant AI visibility analysis.
 
 ## Product Line
 
@@ -28,39 +35,57 @@ Observe → Understand → Improve → Monitor (检测 → 理解 → 修正 →
 | **ZKoner Insight** | AI cognition analysis, Entity analysis, Gap analysis |
 | **ZKoner Action** | Fix suggestions, Content suggestions, Schema suggestions |
 | **ZKoner Monitor** | Daily monitoring, Trend changes, Email notifications |
-| _ZKoner API / ZKoner Agent / ZKoner Studio_ | _Future_ |
 
 ## Stack
 
-- **Frontend**: Next.js + Tailwind (`localhost:3000`)
-- **Backend**: Python FastAPI + AI Pipeline (`localhost:8000`)
-- **Storage**: SQLite (v0.1)
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 16 + Tailwind CSS (dark theme) |
+| **Backend** | Python FastAPI |
+| **AI Engine** | Pluggable engine registry (EngineRegistry) |
+| **Engine: Claude** | Anthropic Claude API (requires `CLAUDE_API_KEY`) |
+| **Engine: Heuristic** | Built-in heuristic analysis — works out of the box |
+| **Engine: Mock** | Canned data for demo |
+| **Crawler** | httpx + BeautifulSoup |
+| **Storage** | SQLite |
 
-## Quick Start
+No API key is required to run — the heuristic engine provides real analysis purely from web crawl data.
 
-```bash
-cd /home/zxm/zkoner
-bash scripts/start.sh
-```
+## Dashboard (5 Modules)
+
+1. **AI Visibility** — Score (0–100) across 5 dimensions
+2. **AI Perception** — How AI "thinks" about your brand
+3. **Missing Signals** — Gaps in structure / content / authority / clarity
+4. **Recommended Actions** — Prioritised immediate + medium-term improvements
+5. **Monitoring Timeline** — Re-analysis history & 5-stage roadmap
 
 ## API
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/analyze` | Submit brand for analysis |
-| GET | `/api/analysis/{id}` | Get analysis result |
-| GET | `/api/analyses/recent` | Recent analyses |
+| `GET` | `/api/health` | Health check |
+| `POST` | `/api/analyze` | Submit brand for analysis |
+| `GET` | `/api/analysis/{id}` | Get analysis result |
+| `POST` | `/api/analyze/{id}/reanalyze` | Re-analyse a brand |
+| `GET` | `/api/analysis/{id}/history` | Score history (timeline) |
+| `GET` | `/api/analyses/recent` | Recent analyses |
+| `GET` | `/api/brands` | Tracked brands |
 
-## Core Modules (Dashboard)
+## Configuration
 
-1. **AI Visibility** — Score + breakdown
-2. **AI Perception** — How AI "thinks" about your brand
-3. **Missing Signals** — Gaps in structure/content/authority/clarity
-4. **Recommended Actions** — Prioritized improvement plan
-5. **Monitoring Timeline** — Progress tracking
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `AI_ENGINE` | `auto` | Engine selection: `auto`, `claude`, `metaso`, `mock` |
+| `CLAUDE_API_KEY` | — | Set for Claude-powered analysis |
+| `CLAUDE_MODEL` | `claude-sonnet-5-20251001` | Claude model ID |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000/api` | Backend URL (frontend) |
 
-## Mode
+## Multi-language
 
-- **Mock mode** (default): Runs without API key for dev/demo
-- **Live mode**: Set `CLAUDE_API_KEY` in `backend/.env` for real LLM analysis
+- `/` — English (auto-detect browser language)
+- `/zh` — Chinese
+- Locale drives AI output language
+
+## License
+
+MIT
