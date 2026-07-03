@@ -10,15 +10,17 @@ export default function LanguageSwitcher() {
   function switchLocale(nextLocale) {
     if (nextLocale === locale) return;
 
-    // pathname from next/navigation includes locale prefix
+    // Strip current locale prefix from pathname
     let newPath = pathname;
-
-    // Strip current locale prefix from path
     if (locale !== "en") {
       newPath = newPath.replace(`/${locale}`, "") || "/";
     }
 
-    // Add new locale prefix
+    // Set cookie so middleware respects the manual choice
+    // (prevents bounce-back from browser language detection)
+    document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
+
+    // Add new locale prefix (default locale "en" has no prefix)
     if (nextLocale !== "en") {
       newPath = `/${nextLocale}${newPath === "/" ? "" : newPath}`;
     }
