@@ -1,21 +1,23 @@
 """Analysis API endpoints."""
+
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
 
 from app.models.schemas import (
     AnalyzeRequest, AnalysisResult, AnalysisStatus, HealthResponse, ScoreSnapshot,
 )
 from app.crawler import crawl_brand
-from app.ai_engine import analyze_perception, detect_gaps, generate_optimizations
+from app.ai_engine import registry as engine_registry
+from app.ai_engine import EngineInput
 from app.scoring import compute_score
 from app.storage import (
     init_db, save_pending, save_analysis, update_status,
     get_analysis, get_analysis_status, list_recent,
     get_latest_result, get_score_history, list_tracked_brands,
 )
+from app.config import AI_ENGINE
 
 router = APIRouter()
 
@@ -28,37 +30,35 @@ async def _run_analysis_pipeline(
     analysis_id: str, brand: str, url: str | None = None,
     locale: str = "en",
 ) -> AnalysisResult:
-    """Execute the full analysis pipeline (crawl → perceive → gap → score → optimize)."""
+    """Execute the full analysis pipeline using the configured AI engine."""
     output_language = LOCALE_TO_LANG.get(locale, "English")
 
     update_status(analysis_id, "running", "Crawling website...")
     crawled = await crawl_brand(brand, url)
 
     update_status(analysis_id, "running", "Analyzing AI perception...")
-    perception = await analyze_perception(
+
+    # ── Resolve which engine to use ──────────────────────────
+    preferred = None if AI_ENGINE == "auto" else AI_ENGINE
+
+    inp = EngineInput(
         brand=brand,
         url=crawled["url"],
         website_content=crawled["raw_text"],
         about_content=crawled.get("about_text", ""),
         structured_data=crawled.get("structured_data", {}),
         output_language=output_language,
+        page_title=crawled.get("title", ""),
+        meta_description=crawled.get("meta_description", ""),
+        headings=crawled.get("headings", []),
     )
 
-    update_status(analysis_id, "running", "Detecting gaps...")
-    gaps = await detect_gaps(
-        brand=brand,
-        url=crawled["url"],
-        perception=perception,
-        website_content=crawled["raw_text"],
-        output_language=output_language,
-    )
+    engine_result = await engine_registry.analyze(inp, preferred=preferred)
 
-    update_status(analysis_id, "running", "Generating recommendations...")
-    score, score_breakdown = await compute_score(perception, gaps, crawled.get("structured_data"))
-
-    suggestions, roadmap = await generate_optimizations(
-        brand, perception, gaps,
-        output_language=output_language,
+    # ── Compute score ─────────────────────────────────────────
+    score, score_breakdown = await compute_score(
+        engine_result.perception, engine_result.gaps,
+        crawled.get("structured_data"),
     )
 
     return AnalysisResult(
@@ -67,10 +67,10 @@ async def _run_analysis_pipeline(
         locale=locale,
         score=score,
         score_breakdown=score_breakdown,
-        perception_profile=perception,
-        gap_map=gaps,
-        suggestions=suggestions,
-        roadmap=roadmap,
+        perception_profile=engine_result.perception,
+        gap_map=engine_result.gaps,
+        suggestions=engine_result.suggestions,
+        roadmap=engine_result.roadmap,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -165,7 +165,7 @@ async def get_analysis_history(analysis_id: str):
     return get_score_history(original.brand, limit=30)
 
 
-# ── Recent analyses ──────────────────────────────────────
+# ── Recent analyses ─────────────────────────────────────
 
 @router.get("/analyses/recent", response_model=list[AnalysisStatus])
 async def recent_analyses(limit: int = 10):
@@ -173,7 +173,7 @@ async def recent_analyses(limit: int = 10):
     return list_recent(limit)
 
 
-# ── Tracked brands ──────────────────────────────────────
+# ── Tracked brands ─────────────────────────────────────
 
 @router.get("/brands", response_model=list[str])
 async def tracked_brands():

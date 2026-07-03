@@ -8,9 +8,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-# LLM API
+# LLM API (Claude)
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-20251001")
+
+# ── AI Engine selection ─────────────────────────────────────
+# Which AI backend to use for analysis.
+# Options: "auto" | "claude" | "metaso" | "mock"
+# "auto" → best available: claude (if key present) → metaso → mock
+AI_ENGINE = os.getenv("AI_ENGINE", "auto")
 
 # Crawler
 CRAWL_TIMEOUT = int(os.getenv("CRAWL_TIMEOUT", "15000"))  # ms
