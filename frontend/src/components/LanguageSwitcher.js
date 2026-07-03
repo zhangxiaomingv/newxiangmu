@@ -1,32 +1,25 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { usePathname } from "next/navigation";
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
-  const router = useRouter();
   const pathname = usePathname();
-  const [isPending, startTransition] = useTransition();
 
   function switchLocale(nextLocale) {
     if (nextLocale === locale) return;
-    startTransition(() => {
-      // Strip current locale prefix from path
-      let newPath = pathname;
-      if (locale !== "en") {
-        newPath = newPath.replace(`/${locale}`, "") || "/";
-      }
 
-      // Add new locale prefix if not English
-      if (nextLocale !== "en") {
-        newPath = `/${nextLocale}${newPath}`;
-      }
+    // Build the new URL path
+    // usePathname() in next-intl already strips the locale prefix
+    let newPath = pathname;
 
-      router.replace(newPath);
-      router.refresh();
-    });
+    if (nextLocale !== "en") {
+      newPath = `/${nextLocale}${newPath === "/" ? "" : newPath}`;
+    }
+
+    // Hard navigation ensures a full page reload with the new locale
+    window.location.href = newPath;
   }
 
   const languages = [
@@ -40,8 +33,7 @@ export default function LanguageSwitcher() {
         <button
           key={lang.code}
           onClick={() => switchLocale(lang.code)}
-          disabled={isPending}
-          className={`px-3 py-1 text-xs rounded-md transition-all font-medium ${
+          className={`px-3 py-1 text-xs rounded-md transition-all font-medium cursor-pointer ${
             locale === lang.code
               ? "bg-[#7c5cfc] text-white"
               : "text-[#8888aa] hover:text-white hover:bg-[#1a1a3a]"
