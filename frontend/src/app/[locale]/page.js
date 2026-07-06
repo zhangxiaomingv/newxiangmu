@@ -399,7 +399,7 @@ export default function Home() {
     setError("");
     try {
       const result = await startAnalysis(brand.trim(), null, locale);
-      const prefix = locale === "en" ? "" : `/${locale}`;
+      const prefix = `/${locale}`;
       router.push(`${prefix}/analysis/${result.id}`);
     } catch (err) {
       setError(err.message);

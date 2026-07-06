@@ -182,7 +182,7 @@ export default function AnalysisPage({ params }) {
     setReanalyzing(true);
     try {
       const result = await reanalyze(id, locale);
-      const prefix = locale === "en" ? "" : `/${locale}`;
+      const prefix = `/${locale}`;
       window.location.href = `${prefix}/analysis/${result.id}`;
     } catch (e) {
       setError(e.message);
@@ -267,7 +267,7 @@ export default function AnalysisPage({ params }) {
       {/* Language Switcher + Header */}
       <div className="flex items-center justify-between animate-slide-up">
         <div>
-          <a href={`/`} className="text-[#7c5cfc] text-sm hover:underline">{labels.newAnalysis}</a>
+          <a href={`/${locale}`} className="text-[#7c5cfc] text-sm hover:underline">{labels.newAnalysis}</a>
           {/* Engine badge */}
           {data.engine && (
             <div className="mt-1">
