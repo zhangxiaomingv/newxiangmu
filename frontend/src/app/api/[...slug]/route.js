@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   const slug = params.slug.join("/");
-  const url = `${BACKEND}/${slug}`;
+  const url = `${BACKEND}/${slug}${request.nextUrl.search}`;
   try {
     const body = await request.json();
     const resp = await fetch(url, {
