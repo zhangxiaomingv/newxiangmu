@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: zkoner-backend
+    env: python
+    repo: https://github.com/zhangxiaomingv/newxiangmu
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AI_ENGINE
+        value: auto
+      - key: CORS_ORIGINS
+        value: https://zkoner.com,https://www.zkoner.com,https://frontend-3j2xk8un6-243922774-8785s-projects.vercel.app
+      - key: DEEPSEEK_API_KEY
+        sync: false
+    disk:
+      name: data
+      mountPath: /app/data
+      sizeGB: 1
