@@ -340,6 +340,78 @@ export default function AnalysisPage({ params }) {
         </div>
       </section>
 
+      {/* Dual-Model Comparison (when available) */}
+      {data.model_data && data.model_data.engine === "dual_model" && (
+        <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.15s" }}>
+          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#00e5a0]" />
+            {locale === "zh" ? "豆包 & DeepSeek 双模型对比" : "Doubao & DeepSeek Comparison"}
+            <span className="text-xs font-normal text-[#8888aa] ml-auto">
+              {data.model_data.models_queried?.join(" + ") || ""}
+            </span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Doubao Card */}
+            <div className="bg-[#0a0a1a] border border-[#2a2a5a]/50 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-[#7c5cfc]" /> 豆包 Doubao
+                </h3>
+                {data.doubao_score != null && (
+                  <span className={`text-2xl font-bold ${data.doubao_score >= 70 ? "text-[#00e5a0]" : data.doubao_score >= 40 ? "text-[#f0c040]" : "text-[#ff6040]"}`}>
+                    {data.doubao_score}
+                  </span>
+                )}
+              </div>
+              <div className="h-2 bg-[#1a1a3a] rounded-full overflow-hidden mb-3">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${data.doubao_score >= 70 ? "bg-[#00e5a0]" : data.doubao_score >= 40 ? "bg-[#f0c040]" : "bg-[#ff6040]"}`}
+                  style={{ width: `${data.doubao_score || 0}%` }}
+                />
+              </div>
+              {data.model_data.doubao_raw_queries?.length > 0 ? (
+                <div className="text-xs text-[#8888aa] mt-2">
+                  已采集 {data.model_data.doubao_raw_queries.length} 个维度回答
+                </div>
+              ) : (
+                <div className="text-xs text-[#555]">
+                  {locale === "zh" ? "未配置 DOUBAO_API_KEY" : "DOUBAO_API_KEY not configured"}
+                </div>
+              )}
+            </div>
+
+            {/* DeepSeek Card */}
+            <div className="bg-[#0a0a1a] border border-[#2a2a5a]/50 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-[#00e5a0]" /> DeepSeek
+                </h3>
+                {data.deepseek_score != null && (
+                  <span className={`text-2xl font-bold ${data.deepseek_score >= 70 ? "text-[#00e5a0]" : data.deepseek_score >= 40 ? "text-[#f0c040]" : "text-[#ff6040]"}`}>
+                    {data.deepseek_score}
+                  </span>
+                )}
+              </div>
+              <div className="h-2 bg-[#1a1a3a] rounded-full overflow-hidden mb-3">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${data.deepseek_score >= 70 ? "bg-[#00e5a0]" : data.deepseek_score >= 40 ? "bg-[#f0c040]" : "bg-[#ff6040]"}`}
+                  style={{ width: `${data.deepseek_score || 0}%` }}
+                />
+              </div>
+              {data.model_data.deepseek_raw_queries?.length > 0 ? (
+                <div className="text-xs text-[#8888aa] mt-2">
+                  已采集 {data.model_data.deepseek_raw_queries.length} 个维度回答
+                </div>
+              ) : (
+                <div className="text-xs text-[#555]">
+                  {locale === "zh" ? "未配置 DEEPSEEK_API_KEY" : "DEEPSEEK_API_KEY not configured"}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Module 2: AI Perception Profile */}
       <section className="bg-[#12122a] border border-[#2a2a5a] rounded-2xl p-8 animate-slide-up" style={{ animationDelay: "0.2s" }}>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

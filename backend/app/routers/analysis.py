@@ -1,5 +1,6 @@
 """Analysis API endpoints."""
 
+import json
 import uuid
 from datetime import datetime, timezone
 
@@ -56,10 +57,51 @@ async def _run_analysis_pipeline(
     engine_result = await engine_registry.analyze(inp, preferred=preferred)
 
     # ── Compute score ─────────────────────────────────────────
-    score, score_breakdown = await compute_score(
-        engine_result.perception, engine_result.gaps,
-        crawled.get("structured_data"),
-    )
+
+    # For dual-model engine, use the cross-model comparison score
+    if engine_result.engine_name == "dual" and engine_result.source_raw:
+        try:
+            raw_data = json.loads(engine_result.source_raw)
+            doubao_score = raw_data.get("doubao_overall")
+            deepseek_score = raw_data.get("deepseek_overall")
+            # Derive score from available model evaluations
+            scores = [s for s in [doubao_score, deepseek_score] if s is not None]
+            if scores:
+                score = round(sum(scores) / len(scores), 1)
+                score_breakdown = {
+                    "doubao": doubao_score or 0,
+                    "deepseek": deepseek_score or 0,
+                    "combined": score,
+                }
+            else:
+                score, score_breakdown = await compute_score(
+                    engine_result.perception, engine_result.gaps,
+                    crawled.get("structured_data"),
+                )
+        except (json.JSONDecodeError, TypeError, KeyError):
+            score, score_breakdown = await compute_score(
+                engine_result.perception, engine_result.gaps,
+                crawled.get("structured_data"),
+            )
+    else:
+        score, score_breakdown = await compute_score(
+            engine_result.perception, engine_result.gaps,
+            crawled.get("structured_data"),
+        )
+
+    # ── Parse model data for frontend ──────────────────────────
+    model_data = None
+    doubao_score = None
+    deepseek_score = None
+    if engine_result.source_raw:
+        try:
+            raw = json.loads(engine_result.source_raw)
+            if raw.get("engine") == "dual_model":
+                doubao_score = raw.get("doubao_overall")
+                deepseek_score = raw.get("deepseek_overall")
+                model_data = raw
+        except (json.JSONDecodeError, TypeError):
+            pass
 
     return AnalysisResult(
         id=analysis_id,
@@ -73,6 +115,9 @@ async def _run_analysis_pipeline(
         suggestions=engine_result.suggestions,
         roadmap=engine_result.roadmap,
         created_at=datetime.now(timezone.utc),
+        doubao_score=doubao_score,
+        deepseek_score=deepseek_score,
+        model_data=model_data,
     )
 
 

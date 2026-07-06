@@ -6,12 +6,13 @@ Usage
 
     result = await registry.analyze(
         EngineInput(brand="Acme", url="https://acme.com", …),
-        preferred="claude",           # or "metaso", "mock"
+        preferred="dual",              # or "claude", "metaso", "mock"
     )
 
 Available engines (auto-detected at startup):
+  - dual    → 豆包 + DeepSeek 双模型检测 (needs DOUBAO_API_KEY / DEEPSEEK_API_KEY)
   - claude  → Claude API (needs CLAUDE_API_KEY)
-  - metaso  → 秘塔 AI 搜索 (free, no login)
+  - metaso  → Built-in heuristic (always available)
   - mock    → Canned data for dev/demo
 """
 
@@ -22,11 +23,13 @@ from app.ai_engine.registry import registry
 from app.ai_engine.claude_adapter import ClaudeAdapter
 from app.ai_engine.metaso_adapter import HeuristicAdapter
 from app.ai_engine.mock_adapter import MockAdapter
+from app.ai_engine.dual_model_engine import DualModelEngine
 
 registry.register_many(
-    ClaudeAdapter(),     # needs CLAUDE_API_KEY
-    HeuristicAdapter(),  # built-in heuristic (always available)
-    MockAdapter(),       # canned demo data (always available)
+    DualModelEngine(),    # 豆包 + DeepSeek 双模型 (needs API keys)
+    ClaudeAdapter(),      # Claude API (needs CLAUDE_API_KEY)
+    HeuristicAdapter(),   # Built-in heuristic (always available)
+    MockAdapter(),        # Canned demo data (always available)
 )
 
 # ── Re-export key symbols ──────────────────────────────────

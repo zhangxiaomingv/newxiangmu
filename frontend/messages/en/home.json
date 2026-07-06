@@ -1,32 +1,134 @@
 {
   "hero": {
     "title": "See Your Brand Through AI",
-    "subtitle": "Understand how AI models perceive your brand, identify what is missing, and continuously improve your AI visibility.",
-    "chineseTagline": "ZKoner 帮助品牌理解 AI 如何认识自己，并持续优化这种认知",
-    "mission": "让每一个品牌都能建立、监测和优化自己在 AI 世界中的认知"
-  },
-  "form": {
-    "brandPlaceholder": "Brand name or URL (e.g., Anthropic, tesla.com)",
-    "urlPlaceholder": "https://yourbrand.com",
-    "analyzeButton": "Analyze Your Brand",
+    "subtitle": "Understand how AI models perceive your brand, identify what's missing, and continuously improve your AI visibility.",
+    "cta": "Analyze Your Brand",
+    "placeholder": "Enter your brand or website URL",
     "analyzing": "Analyzing..."
   },
-  "features": {
-    "scan": {
-      "title": "ZKoner Scan",
-      "desc": "AI detection & visibility analysis"
-    },
-    "insight": {
-      "title": "ZKoner Insight",
-      "desc": "AI cognition & entity analysis"
-    },
-    "action": {
-      "title": "ZKoner Action",
-      "desc": "Improvement & content suggestions"
-    }
+  "nav": {
+    "product": "Product",
+    "howItWorks": "How It Works",
+    "pricing": "Pricing",
+    "startFree": "Try Free"
   },
-  "recent": {
-    "title": "Recent Analyses",
-    "empty": "No past analyses yet"
+  "problem": {
+    "label": "THE PROBLEM",
+    "title": "AI Doesn't Know Your Brand",
+    "description": "When users ask ChatGPT, Claude, or Google AI about your industry, does your brand appear? Is it described accurately? Most brands are invisible to AI — not because they're not good, but because they don't speak AI's language.",
+    "stats": [
+      { "value": "73%", "label": "of brands are not mentioned by AI when asked about their category" },
+      { "value": "4 in 5", "label": "brand descriptions by AI contain inaccuracies or gaps" },
+      { "value": "2026", "label": "AI search usage surpassed 40B queries per month" }
+    ]
+  },
+  "solution": {
+    "title": "Turn Your Brand Into an AI-Native Asset",
+    "description": "ZKoner is the first AI Brand Intelligence Platform — a cognitive identity system that measures, optimizes, and monitors how AI understands your brand across every model."
+  },
+  "loop": {
+    "label": "THE PRODUCT LOOP",
+    "title": "Observe → Understand → Improve → Monitor",
+    "subtitle": "Not a one-time report. A continuous cycle that keeps your brand AI-optimized forever.",
+    "steps": [
+      { "title": "Scan", "desc": "Detect how AI models perceive your brand right now" },
+      { "title": "Insight", "desc": "Understand gaps between reality and AI perception" },
+      { "title": "Action", "desc": "Get concrete, prioritized steps to fix the gaps" },
+      { "title": "Verify", "desc": "Confirm corrections took effect across AI models" },
+      { "title": "Monitor", "desc": "Track changes daily, catch regressions early" },
+      { "title": "Loop", "desc": "Repeat — AI perception is a living thing, not a snapshot" }
+    ]
+  },
+  "productLines": {
+    "label": "PRODUCT LINES",
+    "title": "Everything You Need to Own Your AI Presence",
+    "items": [
+      {
+        "name": "ZKoner Scan",
+        "icon": "🔍",
+        "desc": "Multi-model detection across ChatGPT, Claude, Google AI. See exactly how each model describes your brand."
+      },
+      {
+        "name": "ZKoner Insight",
+        "icon": "🧠",
+        "desc": "AI cognition analysis, entity mapping, competitive context. Understand the 'why' behind your AI visibility."
+      },
+      {
+        "name": "ZKoner Action",
+        "icon": "⚡",
+        "desc": "Prioritized improvement plan with effort & impact scoring. Schema, content, authority — exactly what to fix."
+      },
+      {
+        "name": "ZKoner Monitor",
+        "icon": "📈",
+        "desc": "Daily tracking, trend detection, email alerts. Your brand's AI pulse, 24/7."
+      }
+    ]
+  },
+  "dashboard": {
+    "label": "DASHBOARD",
+    "title": "5 Metrics. Zero Noise.",
+    "subtitle": "GEO tools drown you in 50+ SEO metrics. We give you exactly 5 — the only ones that matter for AI visibility.",
+    "metrics": [
+      { "name": "AI Visibility Score", "desc": "0–100 composite score of your brand's AI presence" },
+      { "name": "AI Perception Profile", "desc": "How AI 'thinks' about your brand — attributes, known-for, confusion areas" },
+      { "name": "Missing Signals", "desc": "Critical gaps ranked by severity with concrete evidence" },
+      { "name": "Recommended Actions", "desc": "Prioritized plan with effort & impact scoring, 7-day and 30-day tracks" },
+      { "name": "Monitoring Timeline", "desc": "Score history, trend direction, regression alerts" }
+    ]
+  },
+  "pricing": {
+    "label": "PRICING",
+    "title": "Start Free. Scale When Ready.",
+    "plans": [
+      {
+        "name": "Free",
+        "price": "$0",
+        "period": "",
+        "desc": "One complete brand analysis",
+        "features": ["Full AI visibility scan", "Perception profile", "Gap map", "Basic recommendations"],
+        "cta": "Analyze Now"
+      },
+      {
+        "name": "Report",
+        "price": "$19",
+        "period": "/ report",
+        "desc": "Deep-dive with competitive context",
+        "features": ["Everything in Free", "Competitive analysis", "Detailed action plan", "Exportable PDF report"],
+        "cta": "Get Report"
+      },
+      {
+        "name": "Monitor",
+        "price": "$49",
+        "period": "/ month",
+        "desc": "Continuous AI visibility tracking",
+        "features": ["Everything in Report", "Daily monitoring", "Trend detection", "Email alerts", "Historical data"],
+        "cta": "Start Monitoring",
+        "highlight": true
+      },
+      {
+        "name": "Growth",
+        "price": "$99",
+        "period": "/ month",
+        "desc": "Full AI brand management suite",
+        "features": ["Everything in Monitor", "Multi-brand support", "Competitor tracking", "API access", "Priority support"],
+        "cta": "Go Growth"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Every Company Manages Three Things:",
+    "subtitle": "Website. Social Media. AI Perception.",
+    "highlight": "ZKoner is the third.",
+    "button": "See Your Brand Through AI"
+  },
+  "footer": {
+    "tagline": "AI Brand Intelligence Platform",
+    "mission": "Helping every brand build, monitor, and optimize how AI understands them.",
+    "product": "Product",
+    "company": "Company",
+    "vision": "Vision",
+    "pricing": "Pricing",
+    "docs": "Docs"
   }
 }

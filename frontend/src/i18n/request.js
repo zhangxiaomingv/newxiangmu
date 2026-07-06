@@ -5,7 +5,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   if (!locale) {
     // Detect from headers or default
-    locale = 'en';
+    locale = 'zh';
   }
 
   return {

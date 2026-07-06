@@ -67,6 +67,10 @@ class AnalysisResult(BaseModel):
     suggestions: list[ActionItem]
     roadmap: list[RoadmapStage]
     created_at: datetime
+    # Dual-model specific fields
+    doubao_score: Optional[float] = None
+    deepseek_score: Optional[float] = None
+    model_data: Optional[dict] = None  # raw model responses + evals for dashboard
 
 
 class HealthResponse(BaseModel):

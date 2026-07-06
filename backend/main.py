@@ -4,6 +4,7 @@ Usage:
     uvicorn main:app --reload --port 8000
 """
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -26,6 +27,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS — allow dev origins + production frontend + custom (for Railway)
+_CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
+_extra_origins = [o.strip() for o in _CORS_ORIGINS.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -33,6 +38,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "https://zkoner.com",
         "https://www.zkoner.com",
+        *_extra_origins,
     ],
     allow_credentials=True,
     allow_methods=["*"],

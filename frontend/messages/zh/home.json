@@ -2,31 +2,133 @@
   "hero": {
     "title": "See Your Brand Through AI",
     "subtitle": "了解 AI 模型如何理解你的品牌，发现信息缺口，持续提升你的 AI 可见度。",
-    "chineseTagline": "ZKoner 帮助品牌理解 AI 如何认识自己，并持续优化这种认知",
-    "mission": "让每一个品牌都能建立、监测和优化自己在 AI 世界中的认知"
-  },
-  "form": {
-    "brandPlaceholder": "品牌名或网址（如：Anthropic、tesla.com）",
-    "urlPlaceholder": "https://yourbrand.com",
-    "analyzeButton": "分析你的品牌",
+    "cta": "分析你的品牌",
+    "placeholder": "输入品牌名或网址",
     "analyzing": "正在分析..."
   },
-  "features": {
-    "scan": {
-      "title": "ZKoner Scan",
-      "desc": "AI 检测与可见性分析"
-    },
-    "insight": {
-      "title": "ZKoner Insight",
-      "desc": "AI 认知与实体分析"
-    },
-    "action": {
-      "title": "ZKoner Action",
-      "desc": "优化与内容建议"
-    }
+  "nav": {
+    "product": "产品",
+    "howItWorks": "如何工作",
+    "pricing": "定价",
+    "startFree": "免费试用"
   },
-  "recent": {
-    "title": "最近分析",
-    "empty": "暂无历史分析"
+  "problem": {
+    "label": "核心痛点",
+    "title": "AI 不认识你的品牌",
+    "description": "当用户在 ChatGPT、Claude 或 Google AI 中询问你的行业时，你的品牌会出现吗？描述准确吗？大多数品牌对 AI 是不可见的——不是因为他们不够好，而是因为他们不会说 AI 的语言。",
+    "stats": [
+      { "value": "73%", "label": "的品牌在 AI 被问及所属类别时未被提及" },
+      { "value": "80%", "label": "的 AI 品牌描述包含不准确或缺失信息" },
+      { "value": "400亿+", "label": "2026 年 AI 搜索月查询量已突破此数值" }
+    ]
+  },
+  "solution": {
+    "title": "将你的品牌变成 AI 原生资产",
+    "description": "ZKoner 是首个 AI 品牌智能平台——一个认知身份系统，用于测量、优化和监控 AI 如何跨模型理解你的品牌。"
+  },
+  "loop": {
+    "label": "产品闭环",
+    "title": "检测 → 理解 → 修正 → 监控",
+    "subtitle": "不是一次性报告。而是一个持续的循环，让你的品牌始终保持 AI 最佳状态。",
+    "steps": [
+      { "title": "检测 Scan", "desc": "发现 AI 模型当前如何认知你的品牌" },
+      { "title": "理解 Insight", "desc": "理解品牌现实与 AI 认知之间的差距" },
+      { "title": "行动 Action", "desc": "获得具体、按优先级排列的修复方案" },
+      { "title": "验证 Verify", "desc": "确认修复在 AI 模型中生效" },
+      { "title": "监控 Monitor", "desc": "每日追踪变化，及早发现问题" },
+      { "title": "循环 Loop", "desc": "重复——AI 认知是动态的，不是静态快照" }
+    ]
+  },
+  "productLines": {
+    "label": "产品线",
+    "title": "掌控 AI 认知所需的一切",
+    "items": [
+      {
+        "name": "ZKoner Scan",
+        "icon": "🔍",
+        "desc": "跨 ChatGPT、Claude、Google AI 的多模型检测。精确了解每个模型如何描述你的品牌。"
+      },
+      {
+        "name": "ZKoner Insight",
+        "icon": "🧠",
+        "desc": "AI 认知分析、实体映射、竞争格局。理解 AI 可见度背后的「为什么」。"
+      },
+      {
+        "name": "ZKoner Action",
+        "icon": "⚡",
+        "desc": "带有投入产出比评分的优先级优化方案。Schema、内容、权威——明确该修什么。"
+      },
+      {
+        "name": "ZKoner Monitor",
+        "icon": "📈",
+        "desc": "每日追踪、趋势检测、邮件提醒。品牌 AI 脉搏，全天候监测。"
+      }
+    ]
+  },
+  "dashboard": {
+    "label": "仪表盘",
+    "title": "5 个指标。零噪音。",
+    "subtitle": "GEO 工具用 50+ 个 SEO 指标淹没你。我们只给你 5 个——对 AI 可见度唯一重要的指标。",
+    "metrics": [
+      { "name": "AI 可见度评分", "desc": "品牌 AI 存在感的 0–100 综合评分" },
+      { "name": "AI 认知画像", "desc": "AI 如何看待你的品牌——属性、知名领域、混淆区域" },
+      { "name": "信号缺口", "desc": "按严重程度排列的关键缺口，附具体证据" },
+      { "name": "推荐行动", "desc": "带有投入产出比评分的优先级方案，7 天 & 30 天两条路径" },
+      { "name": "监控时间线", "desc": "评分历史、趋势方向、异常预警" }
+    ]
+  },
+  "pricing": {
+    "label": "定价",
+    "title": "免费开始。按需升级。",
+    "plans": [
+      {
+        "name": "免费版",
+        "price": "¥0",
+        "period": "",
+        "desc": "一次完整的品牌分析",
+        "features": ["完整 AI 可见度扫描", "认知画像", "缺口图谱", "基础建议"],
+        "cta": "立即分析"
+      },
+      {
+        "name": "深度报告",
+        "price": "¥99",
+        "period": "/ 次",
+        "desc": "含竞争格局的深度分析",
+        "features": ["免费版全部内容", "竞争分析", "详细行动计划", "可导出 PDF 报告"],
+        "cta": "获取报告"
+      },
+      {
+        "name": "持续监控",
+        "price": "¥299",
+        "period": "/ 月",
+        "desc": "持续 AI 可见度追踪",
+        "features": ["深度报告全部内容", "每日监控", "趋势检测", "邮件提醒", "历史数据"],
+        "cta": "开始监控",
+        "highlight": true
+      },
+      {
+        "name": "增长版",
+        "price": "¥599",
+        "period": "/ 月",
+        "desc": "完整 AI 品牌管理套件",
+        "features": ["持续监控全部内容", "多品牌支持", "竞品追踪", "API 访问", "优先支持"],
+        "cta": "立即升级"
+      }
+    ]
+  },
+  "cta": {
+    "title": "未来，每家公司都会管理三件事：",
+    "subtitle": "官网。社交媒体。AI 认知。",
+    "highlight": "ZKoner 就是第三项。",
+    "button": "See Your Brand Through AI"
+  },
+  "footer": {
+    "tagline": "AI 品牌智能平台",
+    "mission": "让每一个品牌都能建立、监测和优化自己在 AI 世界中的认知。",
+    "product": "产品",
+    "company": "公司",
+    "vision": "愿景",
+    "pricing": "定价",
+    "docs": "文档"
   }
 }
