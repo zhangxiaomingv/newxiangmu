@@ -2,8 +2,9 @@
  *  This avoids CORS issues in the browser. */
 const BACKEND = "https://polite-rings-argue.loca.lt/api";
 
-export async function GET(request, { params }) {
-  const slug = params.slug.join("/");
+export async function GET(request, ctx) {
+  const { slug: slugRaw } = await ctx.params;
+  const slug = Array.isArray(slugRaw) ? slugRaw.join("/") : String(slugRaw);
   const url = `${BACKEND}/${slug}${request.nextUrl.search}`;
   try {
     const resp = await fetch(url, {
@@ -23,8 +24,9 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function POST(request, { params }) {
-  const slug = params.slug.join("/");
+export async function POST(request, ctx) {
+  const { slug: slugRaw } = await ctx.params;
+  const slug = Array.isArray(slugRaw) ? slugRaw.join("/") : String(slugRaw);
   const url = `${BACKEND}/${slug}${request.nextUrl.search}`;
   try {
     const body = await request.text();
