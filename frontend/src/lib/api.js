@@ -1,6 +1,5 @@
-// API base URL - hardcoded for reliability with localtunnel
-// Tunnel restarts change the URL; update this when tunnel changes
-const API_BASE = "https://polite-rings-argue.loca.lt/api";
+// API base URL — same-origin via Next.js API proxy (no CORS issues)
+const API_BASE = "/api";
 
 export async function startAnalysis(brand, url = null, locale = "en") {
   const res = await fetch(`${API_BASE}/analyze`, {
