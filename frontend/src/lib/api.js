@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+// API base URL - hardcoded for reliability with localtunnel
+// Tunnel restarts change the URL; update this when tunnel changes
+const API_BASE = "https://polite-rings-argue.loca.lt/api";
 
 export async function startAnalysis(brand, url = null, locale = "en") {
   const res = await fetch(`${API_BASE}/analyze`, {
