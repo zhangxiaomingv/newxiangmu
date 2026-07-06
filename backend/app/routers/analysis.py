@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.models.schemas import (
     AnalyzeRequest, AnalysisResult, AnalysisStatus, HealthResponse, ScoreSnapshot,
@@ -132,24 +132,31 @@ async def health():
 
 @router.post("/analyze", response_model=AnalysisStatus)
 async def start_analysis(req: AnalyzeRequest):
-    """Start a brand analysis."""
+    """Start a brand analysis (runs in background)."""
     analysis_id = str(uuid.uuid4())[:8]
     save_pending(analysis_id, req.brand)
 
+    # Run pipeline in background so POST returns immediately
+    import asyncio
+    asyncio.create_task(_run_and_save(analysis_id, req.brand, req.url, req.locale))
+
+    return AnalysisStatus(
+        id=analysis_id, brand=req.brand, status="pending",
+        locale=req.locale,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+async def _run_and_save(analysis_id: str, brand: str, url: str | None = None,
+                        locale: str = "en") -> None:
+    """Run analysis pipeline and save result (for background tasks)."""
     try:
-        result = await _run_analysis_pipeline(analysis_id, req.brand, req.url, locale=req.locale)
+        result = await _run_analysis_pipeline(analysis_id, brand, url, locale=locale)
         save_analysis(result)
     except HTTPException:
         raise
     except Exception as e:
         update_status(analysis_id, "failed", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return AnalysisStatus(
-        id=analysis_id, brand=req.brand, status="completed",
-        locale=req.locale,
-        created_at=datetime.now(timezone.utc),
-    )
 
 
 # ── Re-analyze (Monitor loop) ───────────────────────────
@@ -170,17 +177,11 @@ async def reanalyze_brand(analysis_id: str, locale: str = "en"):
     new_id = str(uuid.uuid4())[:8]
     save_pending(new_id, brand)
 
-    try:
-        result = await _run_analysis_pipeline(new_id, brand, locale=locale)
-        save_analysis(result)
-    except HTTPException:
-        raise
-    except Exception as e:
-        update_status(new_id, "failed", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    import asyncio
+    asyncio.create_task(_run_and_save(new_id, brand, locale=locale))
 
     return AnalysisStatus(
-        id=new_id, brand=brand, status="completed",
+        id=new_id, brand=brand, status="pending",
         locale=locale,
         created_at=datetime.now(timezone.utc),
     )

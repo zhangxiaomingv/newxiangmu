@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -136,13 +137,13 @@ class DualModelEngine(BaseEngineAdapter):
         if self._deepseek_client:
             deepseek_responses = await self._query_model(self._deepseek_client, queries)
 
-        # 3. Evaluate responses
+        # 3. Evaluate responses (pass inp for heuristic fallback gap generation)
         doubao_eval = None
         deepseek_eval = None
         if doubao_responses:
-            doubao_eval = await self._evaluate_responses(inp.brand, ground_truth, doubao_responses)
+            doubao_eval = await self._evaluate_responses(inp.brand, ground_truth, doubao_responses, inp)
         if deepseek_responses:
-            deepseek_eval = await self._evaluate_responses(inp.brand, ground_truth, deepseek_responses)
+            deepseek_eval = await self._evaluate_responses(inp.brand, ground_truth, deepseek_responses, inp)
 
         # 4. Cross-model comparison (if both available)
         combined = None
@@ -220,7 +221,8 @@ class DualModelEngine(BaseEngineAdapter):
 
     # ── Step 3: Evaluate with Claude ────────────────────────
 
-    async def _evaluate_responses(self, brand: str, ground_truth: str, responses: dict) -> dict:
+    async def _evaluate_responses(self, brand: str, ground_truth: str, responses: dict,
+                                    inp: Optional[EngineInput] = None) -> dict:
         """Use Claude (or heuristic) to score model responses against ground truth."""
         if self._claude_client:
             try:
@@ -235,12 +237,14 @@ class DualModelEngine(BaseEngineAdapter):
                 return self._parse_json(text)
             except Exception:
                 pass
-        return self._heuristic_evaluate(brand, responses)
+        return self._heuristic_evaluate(brand, responses, ground_truth, inp)
 
-    @staticmethod
-    def _heuristic_evaluate(brand: str, responses: dict) -> dict:
-        """Simple heuristic scoring when Claude is unavailable."""
+    def _heuristic_evaluate(self, brand: str, responses: dict, ground_truth: str = "",
+                             inp: Optional[EngineInput] = None) -> dict:
+        """Heuristic scoring + gap detection when Claude is unavailable."""
         dims = {}
+        all_text = " ".join(responses.values())
+
         for qid, response in responses.items():
             length = len(response)
             if length > 500:
@@ -264,16 +268,125 @@ class DualModelEngine(BaseEngineAdapter):
                 "misunderstandings": [],
             }
 
+        # Extract entities from responses
+        mentioned_competitors = self._extract_competitors(all_text)
+        mentioned_products = self._extract_products(all_text)
+        has_numbers = bool(re.search(r'\d+[万亿]?[\d.]*|[%％]', all_text))
+        has_vague = any(w in all_text for w in ["可能", "maybe", "perhaps", "generally", "通常", "一些"])
+
         overall = sum(d["score"] * [20, 30, 15, 20, 15][i] / 100 for i, (_, d) in enumerate(dims.items()))
+
+        # Generate gaps by comparing responses against ground truth
+        gaps = []
+        if not mentioned_competitors:
+            gaps.append({
+                "category": "competition",
+                "severity": "moderate",
+                "description": f"AI 对 {brand} 的竞争对手信息不足，无法提供竞争格局分析。",
+                "evidence": "AI 回答中未提及任何竞争者名称。",
+            })
+        if not has_numbers:
+            gaps.append({
+                "category": "depth",
+                "severity": "moderate",
+                "description": f"AI 对 {brand} 的描述缺乏具体数据（数字、时间、百分比），理解停留在表层。",
+                "evidence": "AI 回答中未包含具体数字或统计数据。",
+            })
+        if has_vague:
+            gaps.append({
+                "category": "clarity",
+                "severity": "minor",
+                "description": f"AI 对 {brand} 的描述使用了模糊/不确定用语，品牌定位不够清晰。",
+                "evidence": "回答包含'可能''也许''一般来说'等不确定用语。",
+            })
+        # Check if responses are too short (thin content)
+        for qid, resp in responses.items():
+            if len(resp) < 100:
+                gaps.append({
+                    "category": "content",
+                    "severity": "moderate",
+                    "description": f"AI 对 '{qid}' 维度回答过短（{len(resp)}字），品牌在此维度的 AI 认知薄弱。",
+                    "evidence": f"回答长度不足100字，需要更丰富的品牌信息。",
+                })
+                break
+
+        # Generate actions from gaps
+        actions = []
+        for g in gaps:
+            if g["category"] == "competition":
+                actions.append({
+                    "priority": "medium_term",
+                    "title": f"强化 {brand} 的竞争定位描述",
+                    "description": "在官网和品牌资料中清晰标注主要竞争对手和差异化优势，帮助 AI 准确理解市场定位。",
+                    "effort": "medium", "impact": "high",
+                })
+            elif g["category"] == "depth":
+                actions.append({
+                    "priority": "immediate",
+                    "title": f"在官网增加具体数据和事实",
+                    "description": "使用具体数字、年份、市场份额等数据描述品牌成就，提升 AI 认知的准确性。",
+                    "effort": "low", "impact": "high",
+                })
+            elif g["category"] == "clarity":
+                actions.append({
+                    "priority": "immediate",
+                    "title": f"为 {brand} 撰写清晰的品牌定位声明",
+                    "description": "在官网首页用一句话明确描述「品牌是什么、为谁服务、独特之处」。",
+                    "effort": "low", "impact": "high",
+                })
+            elif g["category"] == "content":
+                actions.append({
+                    "priority": "medium_term",
+                    "title": f"丰富 {brand} 在各维度的品牌信息",
+                    "description": "确保官网和公开资料全面覆盖品牌的核心业务、产品、技术能力和市场地位。",
+                    "effort": "medium", "impact": "high",
+                })
+
+        perception_summary = f"基于 {brand} 的启发式分析。"
+        if mentioned_competitors:
+            perception_summary += f" AI 提到了竞品: {', '.join(mentioned_competitors[:3])}。"
+        if mentioned_products:
+            perception_summary += f" 识别到产品: {', '.join(mentioned_products[:3])}。"
+
         return {
             "overall_score": round(overall, 1),
             "dimensions": dims,
-            "perception_summary": f"基于 {brand} 的启发式分析。建议配置 Claude API Key 获取AI语义级评估。",
-            "key_attributes_from_ai": [brand],
-            "confusion_areas": ["启发式模式无法检测语义混淆"],
-            "gaps": [],
-            "actions": [],
+            "perception_summary": perception_summary,
+            "key_attributes_from_ai": mentioned_products[:3] or [brand],
+            "confusion_areas": ["配置 Claude API Key 可获取语义级混淆检测"],
+            "gaps": gaps,
+            "actions": actions,
         }
+
+    @staticmethod
+    def _extract_competitors(text: str) -> list[str]:
+        """Extract likely competitor names from model response."""
+        # Known brand names that commonly appear as competitors
+        known_brands = [
+            "Tesla", "BYD", "比亚迪", "NIO", "蔚来", "XPeng", "小鹏", "Li Auto", "理想",
+            "Google", "Microsoft", "微软", "Apple", "苹果", "Amazon", "Meta", "OpenAI",
+            "Anthropic", "DeepSeek", "字节跳动", "ByteDance", "阿里巴巴", "Alibaba",
+            "腾讯", "Tencent", "百度", "Baidu", "华为", "Huawei", "Xiaomi", "小米",
+        ]
+        found = []
+        for b in known_brands:
+            if b.lower() in text.lower():
+                found.append(b)
+        # Also look for capitalized words followed by "competitor" or "rival"
+        competitors = re.findall(r'(?:competitor|rival|competition|vs\.?|versus)\s+([A-Z][a-zA-Z]+)', text)
+        found.extend(competitors)
+        return list(set(found))[:5]
+
+    @staticmethod
+    def _extract_products(text: str) -> list[str]:
+        """Extract likely product/service names from model response."""
+        products = re.findall(r'([A-Z][a-zA-Z0-9]{2,}(?:\s[A-Z][a-zA-Z0-9]+){0,3})', text)
+        # Filter out common words and short strings
+        skip = {"The", "This", "That", "These", "What", "When", "Where", "How", "Why",
+                "They", "There", "Their", "Your", "Our", "Its", "Are", "Has", "Had",
+                "Will", "Can", "May", "Must", "Should", "Would", "Could", "Being",
+                "Having", "Doing", "Also", "Very", "Just", "Only", "More", "Most"}
+        return [p for p in products if p not in skip and len(p) > 3][:5]
 
     # ── Step 4: Cross-model comparison ──────────────────────
 
@@ -301,18 +414,31 @@ class DualModelEngine(BaseEngineAdapter):
         s_score = deepseek.get("overall_score", 50)
         winner = "tie" if abs(d_score - s_score) < 5 else ("doubao" if d_score > s_score else "deepseek")
 
+        # Collect gaps and attributes from individual evals
+        all_gaps = []
+        seen_gap = set()
+        for src in [doubao, deepseek]:
+            for g in (src.get("gaps") or []):
+                key = g.get("description", "")[:40]
+                if key not in seen_gap:
+                    seen_gap.add(key)
+                    all_gaps.append(g)
+        all_attrs = (doubao.get("key_attributes_from_ai", []) or
+                     deepseek.get("key_attributes_from_ai", []))
+
         return {
             "overall_score": round(max(d_score, s_score), 1),
             "consistency": round(100 - abs(d_score - s_score), 1),
             "model_winner": winner,
             "consensus_strengths": [],
-            "consensus_gaps": [],
+            "consensus_gaps": all_gaps,
             "divergence_areas": [],
             "summary": f"豆包评分 {d_score}，DeepSeek 评分 {s_score}。配置 Claude API Key 可获取详细语义对比。",
-            "key_attributes_from_ai": doubao.get("key_attributes_from_ai", []) or deepseek.get("key_attributes_from_ai", []),
+            "key_attributes_from_ai": all_attrs,
             "known_for": [],
             "confusion_areas": [],
             "competitor_context": "",
+            "gaps": all_gaps,
         }
 
     @staticmethod
